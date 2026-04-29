@@ -292,7 +292,7 @@ The backend normalizes these field names to `volumeKeyframes`: `audioLevelKeyfra
 
 Ducking (`audioMix.ducking`) generates additional clip-level `volumeKeyframes` on the ducked source clips. If both manual keyframes and ducking are present, PR0TA merges/normalizes keyframes and the rendered gain envelope reflects the combined automation. Use `audioMix.ducking` for automatic dialogue-aware ducking. Use `volumeKeyframes` for intentional manual mix moves. For precise manual control, prefer explicit `volumeKeyframes` over ducking.
 
-After applying music automation, verify with `/preview/audio` or a short render and inspect the waveform or audible gaps. For conservative workflows, segment the music bed with static volumes when you do not need smooth ramps.
+After applying music automation, verify with `/preview/audio`, `/audio/meter`, or a short render around at least one narration gap. Inspect the waveform or run a silence check; the music bed should remain audible where narration is absent. For conservative workflows, segment the music bed with static volumes when you do not need smooth ramps.
 
 ### When to Use Track vs Clip
 

@@ -59,6 +59,8 @@ If silence is detected:
 
 Also verify music audibility: the music bed must be present at a measurable level, not buried below the noise floor. Peak somewhere in the -15 to -6 dBFS range while ducked under narration; up to -3 dBFS in narration-quiet sections. A music bed you can't hear is wasted credits.
 
+For timelines with music automation, explicitly test at least one narration gap after render. A simple failure check is to run `silencedetect` on the full rendered mix and inspect any silence window that overlaps a section where the music bed should be audible. For API-driven checks, meter or preview a narration-quiet window rather than relying only on whole-file loudness.
+
 ### Step 3: Concept-Word Frame Audit
 
 For narration-driven productions, verify that the right visual is on screen at the right moment. For every concept word in the cut plan, extract a frame at the moment the viewer should see the matching visual:

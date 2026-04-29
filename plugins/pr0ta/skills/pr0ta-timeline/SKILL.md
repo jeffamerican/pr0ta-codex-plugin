@@ -201,6 +201,8 @@ The renderer multiplies both: `final gain = track gain × clip gain`. Each keyfr
 
 **Interaction with ducking:** Ducking generates clip-level `volumeKeyframes` on ducked clips. If both manual keyframes and ducking are present, PR0TA merges them. Use `audioMix.ducking` for automatic dialogue-aware ducking; use `volumeKeyframes` for intentional manual mix moves.
 
+**Post-render music check:** After any render with music automation, verify that music remains audible in narration gaps. Use `/audio/meter` or a rendered preview/audio export around at least one narration-quiet window, or run `ffmpeg silencedetect` on the rendered file. If the full mix is silent during a gap where music should be present, treat the render as failed even if `/audio/analyze` predicted music.
+
 ### Transitions
 
 Set transitions on clips via `PATCH`:
@@ -236,6 +238,8 @@ Adjacent same-track dissolves and crossfades are synthesized as outgoing-tail ov
 2. **`/audio/meter`** — actual loudness metering. Renders audio through MLT and measures with `ffmpeg ebur128`. Returns `integrated_lufs`, `range_lu`, `true_peak_dbfs`, and a `short_term_lufs_timeline`. Use when verifying the mix meets loudness spec (e.g. −14 LUFS for streaming).
 3. **`/preview/audio`** — ear-based review. Renders a `.wav` preview. Use `tracks=dialogue,music` to solo specific tracks. Use when you need to actually hear the mix.
 4. **`/preview`** — full picture+sound verification. Use only when you need to see visuals alongside audio.
+
+For music beds, include at least one narration-gap check after the render. A practical pattern is: identify a quiet narration interval, meter or listen to that window, and confirm the music track is above the noise floor. Do not rely only on whole-file loudness.
 
 All audio endpoints (`/preview/audio`, `/audio/analyze`, `/audio/meter`) accept an optional `tracks` parameter (comma-separated track IDs) to solo specific tracks.
 
