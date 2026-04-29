@@ -14,6 +14,7 @@ POST /timeline                   — Save/merge timeline-level fields (merges su
 PATCH /timeline                  — Partial update of timeline-level fields (preferred for targeted changes)
 GET /timeline/state?sequence_id=timeline_v2   — Normalized state + _clip_index
 GET /timeline/clips?sequence_id=timeline_v2   — Flattened clip list with track metadata
+GET /timeline/debug-report?sequence_id=timeline_v2   — Render-risk diagnostics for agents
 ```
 
 `PATCH /timeline` merges submitted keys into existing state — submitting `{ "audioMix": { ... } }` updates `audioMix` without touching clips or snapshots. `POST /timeline` replaces the sequence and requires a full `tracks` array. Both return `sequence_id`, updated `version` (integer), and `lastSaved` (ISO 8601 datetime with timezone offset, e.g. `2026-04-12T19:39:30.991013+00:00`). Prefer `PATCH` for single-field updates.
@@ -160,13 +161,18 @@ Clip data is nested under a `clip` key; placement under a `placement` key. Use `
 
 **`POST /timeline/clips` always creates a new clip — it does not upsert.** If you append clips iteratively via POST and don't track the returned `clip_id`, you will duplicate clips. Use `PATCH /timeline/clips/{clip_id}` for updates. Field-observed failure mode: ~30 intended clips ballooned to 72 after iterative append-only POSTs.
 
+**Retiming rule:** Prefer `POST /timeline/edits` with `fitToFill: true` for editorial retiming. Raw `POST /timeline/clips` can create a retimed clip only when you provide a clear source range (`outPoint` or `sourceMedia.duration`) or explicit positive `speed`; otherwise it returns a 4xx validation error. Do not rely on implicit retiming.
+
 **Clip-level timing fields:**
 - `start` — clip start position on the timeline in seconds (authoritative).
 - `duration` — clip playback duration in seconds (authoritative).
 - `start_ms` / `duration_ms` — millisecond-precision equivalents (`start_ms = start × 1000`). These are compatibility/precision helpers, not a separate model. Do not assume `start` is always `0.0` or `duration` is always `1.0`.
 - `in_point` / `out_point` — trim points within the source asset.
+- `fitToFill` / `speed` — explicit retime state when a source range is stretched/compressed to a program duration.
 - `kenBurns` — Ken Burns motion (see below).
 - `transition` — transition to the next clip (dissolve, wipe, fade, etc.).
+
+Clip reads/lists expose retime diagnostics when known: `fitToFill`, `speed`, `sourceDuration`, `programDuration`, `sourceInPoint`, `sourceOutPoint`, `sourceSpan`, `effectivePlaybackDuration`, and `retimeReason`.
 
 **Clip metadata (read-only, present on `GET /timeline`):**
 - `sourceMedia.width` / `height` — original media dimensions (when known from asset metadata).
@@ -271,7 +277,7 @@ PATCH /api/post-production/{project_name}/timeline/clips/{clip_id}?sequence_id=t
 ### Keyframe Fields
 
 - `time` — seconds (program-time for tracks, clip-relative for clips).
-- `value` — linear gain multiplier: `1.0` = unchanged, `0.5` ≈ −6 dB, `0.0` = silence, `2.0` ≈ +6 dB. Clamped to `0.0–4.0`.
+- `value` — linear gain multiplier: `1.0` = unchanged, `0.5` ≈ −6 dB, `0.0` = silence, `2.0` ≈ +6 dB. Clamped to `0.0–4.0`. Negative numeric `value`/`volume`/`gain`/`level` values are interpreted as dB attenuation, so `{"value": -12}` becomes approximately `0.251` linear gain instead of silence.
 - `interpolation` — `linear` (default) or `hold`.
 
 ### Value Aliases
@@ -285,6 +291,8 @@ The backend normalizes these field names to `volumeKeyframes`: `audioLevelKeyfra
 ### Interaction With Ducking
 
 Ducking (`audioMix.ducking`) generates additional clip-level `volumeKeyframes` on the ducked source clips. If both manual keyframes and ducking are present, PR0TA merges/normalizes keyframes and the rendered gain envelope reflects the combined automation. Use `audioMix.ducking` for automatic dialogue-aware ducking. Use `volumeKeyframes` for intentional manual mix moves. For precise manual control, prefer explicit `volumeKeyframes` over ducking.
+
+After applying music automation, verify with `/preview/audio` or a short render and inspect the waveform or audible gaps. For conservative workflows, segment the music bed with static volumes when you do not need smooth ramps.
 
 ### When to Use Track vs Clip
 

@@ -276,6 +276,8 @@ Duration is **not** a single global range. Each provider family publishes its ow
 **Rule of thumb:**
 - Need a precise clip length that does not match the enum? Generate at the nearest supported value **above** your target and trim on the post-production timeline (`PATCH /timeline/clips/{id}` with `in_point`/`out_point`). Never send unsupported durations to the generator.
 - For Kling Fal endpoints, `3..15` gives real editorial flexibility — use it instead of forcing Seedance beats.
+- For animated-card or diagram-driven I2V, write a custom prompt per card. Preserve exact typography and composition, animate only the depicted scene/diagram elements, keep the requested aspect ratio (for example 9:16), and fall back per failed card rather than changing the whole batch strategy.
+- Before placing I2V into a longer beat, compare source duration to the beat duration. If source is shorter, use `/timeline/edits` with `fitToFill: true`, generate/extend a longer animation, or get explicit approval for a still/empty tail. Do not rely on raw `/timeline/clips` to hide the mismatch.
 
 ## Prefer Longer Generations for Consistency
 
@@ -434,4 +436,3 @@ Field-tested failure: a Nano Banana 2 still with perfect text reading `"THE GOVE
 **Rule of thumb:** If the shot contains legible on-screen words the viewer will read, animate it on the timeline as a still with a Ken Burns preset. Reserve video models for shots where the text is decorative, off-screen, or absent.
 
 This is the documented recipe — not a workaround. Trying to feed a title card through `ref_to_vid` is an anti-pattern regardless of model choice.
-

@@ -158,6 +158,17 @@ The natural tendency is to prompt the storyboard moment — the peak of the acti
 
 **The principle:** shots that express a transformation or arc (A→B→C) require the key frame to show state A. Prompt the beginning, then let the video prompt describe the journey to B and C. This is counterintuitive — your instinct is to visualize the dramatic moment, but for i2v you need the setup, not the payoff.
 
+### Technique 7: Custom I2V Prompt Per Card
+
+For animated cards, diagrams, posters, quote panels, and transcript-timed social edits, every card needs its own image-to-video prompt. Do not reuse one generic "animate this card" prompt across the batch.
+
+Required ingredients:
+- Preserve exact typography, layout, colors, and composition from the still frame.
+- Describe the specific concept depicted on that card and animate only relevant elements.
+- Keep the delivery frame explicit, such as "vertical 9:16, no crop, no added border."
+- Keep text stable unless the card intentionally calls for text animation.
+- If one card fails, change model or prompt for that card only; do not globally pivot the batch.
+
 ## Prompt Structure Formula
 
 Write prompts like scene directions to a cinematographer. Follow this master structure:

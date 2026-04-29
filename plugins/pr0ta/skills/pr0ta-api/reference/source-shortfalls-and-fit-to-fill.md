@@ -2,6 +2,8 @@
 
 PR0TA treats too-short source media like a professional NLE: it cuts only the available source and leaves a real timeline gap for the unfilled tail. Retiming is never implicit — it must be requested explicitly via `fitToFill`.
 
+For generated I2V card edits, compare the generated source duration to the intended beat duration before placement. If the source is shorter, either generate/extend a long enough animation or place it through `/timeline/edits` with `fitToFill: true`. Do not place a 3-5s animation into an 8-10s beat through raw clip creation and hope the renderer will pad it.
+
 ---
 
 ### Default Behavior: Source-Accurate Edits
@@ -87,6 +89,7 @@ The analysis response includes source-shortfall diagnostics in `summary.sourceSh
       "gapStart": 55.0,
       "gapEnd": 57.0,
       "speed": 1.0,
+      "renderRisk": "transparent_or_checkerboard_tail",
       "recommendation": "Use fitToFill=true on a three-point edit or set clip speed explicitly if retiming is desired."
     }
   ]
@@ -98,7 +101,16 @@ The analysis response includes source-shortfall diagnostics in `summary.sourceSh
 1. Call `/timeline/analysis`.
 2. If `summary.sourceShortfallCount > 0`, warn the user.
 3. Present the affected clips, tracks, and gap intervals.
-4. Ask whether to leave the gap, choose another source, or retime with fit-to-fill.
+4. Treat `renderRisk: "transparent_or_checkerboard_tail"` as a visible failure risk, especially for image-labeled I2V videos.
+5. Ask whether to leave the gap, choose another source, generate/extend a longer clip, or retime with fit-to-fill.
+
+For complete agent preflight, call:
+
+```
+GET /api/post-production/{project_name}/timeline/debug-report?sequence_id=timeline_v2
+```
+
+The debug report bundles track coverage, primary visual gaps, source-duration-vs-program-duration, retime state, audio asset presence, keyframe counts, and render-risk warnings in one response.
 
 ---
 
@@ -130,6 +142,8 @@ When a clip exceeds available source media, the clip entry includes `sourceShort
 
 Use `/timeline/clips` when working clip-by-clip. Use `/timeline/analysis` for full preflight diagnostics.
 
+Clip reads/lists also expose retime state when known: `fitToFill`, `speed`, `sourceDuration`, `programDuration`, `sourceInPoint`, `sourceOutPoint`, `sourceSpan`, `effectivePlaybackDuration`, and `retimeReason`.
+
 ---
 
 ### Explicit Retiming: `fitToFill`
@@ -142,6 +156,8 @@ When the user explicitly wants the source fit to the requested program range, se
 POST /api/post-production/{project_name}/timeline/edits
 POST /api/post-production/{project_name}/timeline/edits/preview
 ```
+
+Raw `POST /timeline/clips` is not the canonical retiming path. It can accept `fitToFill` only when the payload also provides `outPoint`, `sourceMedia.duration`/`sourceDuration`, or an explicit positive `speed`; otherwise it returns a validation error so agents know to use `/timeline/edits`.
 
 #### Three-Point Fit To Fill (Slow Motion)
 
@@ -215,6 +231,7 @@ Edit requests remain strict 3-point edits: exactly three of `source.in`, `source
 - **`fitToFill: true`:** Use only when the user explicitly wants automatic retiming. The written `speed` value is part of the clip state and affects the renderer.
 - **Manual `speed`:** Use when the user wants a specific slow-motion or speed-up value rather than automatic calculation.
 - **Do not rely on freeze frames as padding.** PR0TA does not freeze-pad. If a clip is too short and `fitToFill` is not set, the tail is a real gap.
+- **Verify transparent/checkerboard tails.** Black-frame scans are not enough. Render a preview and sample frames around every `programDuration > sourceDuration` beat or every `sourceShortfall` warning.
 
 ### User-Facing Copy Recommendations
 

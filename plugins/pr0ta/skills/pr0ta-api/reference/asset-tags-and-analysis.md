@@ -169,7 +169,10 @@ Pre-render diagnostic endpoint that gives agents machine-readable NLE health dat
 
 ```
 GET /api/post-production/{project_name}/timeline/analysis?sequence_id=timeline_v2
+GET /api/post-production/{project_name}/timeline/debug-report?sequence_id=timeline_v2
 ```
+
+Use `/timeline/debug-report` as the default agent preflight before render/export. It wraps analysis with track coverage, primary visual gaps, source-duration-vs-program-duration, retime state, audio asset presence, keyframe counts, and render-risk warnings. Use `/timeline/analysis` when you need the raw analysis payload only.
 
 #### Response shape
 

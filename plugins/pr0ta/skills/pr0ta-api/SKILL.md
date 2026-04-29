@@ -221,9 +221,9 @@ Essential facts:
 - **Filter by favorites, tags, or reference type** — `GET /api/assets/{project_name}?favorite=true`, `?tag=hero&tag=approved` (AND-joined), `?reference_type=character_reference`. Use these instead of fetching the full library and filtering client-side.
 - **Annotate assets with `PATCH /api/assets/{project_name}/annotations`** — write `tags`, `notes`, `reference_type`, `character_name`/`set_name`/`prop_name`/`look_name`, `scene_number`/`shot_number`/`take_number`. Use `tags` for general readability (`approved`, `hero`, `do_not_use`), `reference_type` for durable semantic classification.
 - **Timeline marks now support `label` and `description`** — use these fields (not the legacy `name`/`note` aliases) for editorial annotations on the timeline.
-- **Timeline analysis (`GET /timeline/analysis`)** — returns gaps, overlaps, reused media, source shortfalls, and track coverage. Call this before render/export and warn on unintended gaps, short source media, or repeated media.
+- **Timeline diagnostics (`GET /timeline/debug-report`)** — preferred agent preflight before render/export. It bundles track coverage, primary visual gaps, source shortfalls, retime state, audio asset presence, keyframe counts, and render-risk warnings. Use `GET /timeline/analysis` when you only need the raw gaps/overlaps/reuse/shortfall analysis.
 - **Per-clip `isReusedMedia` and `sourceShortfall` flags** — available on the standard clip listing for lightweight reuse and shortfall checks without full timeline analysis.
-- **Source shortfalls** — when a source clip is shorter than the requested program range, PR0TA inserts only the available source and leaves a real gap (no freeze-padding). The edit response includes a `source_shortfall` warning. Use `fitToFill: true` for explicit retiming when the user wants the source fit to the timeline range. See `reference/source-shortfalls-and-fit-to-fill.md` for the full contract.
+- **Source shortfalls** — when a source clip is shorter than the requested program range, PR0TA inserts only the available source and leaves a real gap (no freeze-padding). For I2V card edits, compare source duration vs beat duration before placement; use `/timeline/edits` with `fitToFill: true`, generate/extend a longer clip, or warn about transparent/checkerboard tails. See `reference/source-shortfalls-and-fit-to-fill.md` for the full contract.
 
 ## Project Image Upload — Reference
 
@@ -253,7 +253,7 @@ Essential facts:
 - **Track creation** — `POST /timeline/tracks` creates individual tracks without rewriting the full `tracks[]` array. Preferred over `PATCH /timeline` for adding tracks.
 - **Track targeting** — tracks support three selector forms: raw ID (`dialogue`), NLE alias (`A1`), or unique label (`Dialogue`). `PATCH /timeline/tracks/{id_or_alias}` renames, locks, or repositions tracks. Read `GET /timeline/tracks` first and use raw IDs in persisted scripts.
 - **`duckedGain` is the canonical ducking field** (fraction of nominal volume: `1.0` = no duck, `0.0` = mute). `threshold` is a deprecated alias.
-- **Audio level keyframes** — `volumeKeyframes` on tracks (absolute time) and clips (clip-relative time) for fine-grained mix automation. The renderer multiplies both. Supports `db`/`decibels` input. See `reference/timeline-api.md` → "Audio Level Keyframes".
+- **Audio level keyframes** — `volumeKeyframes` on tracks (absolute time) and clips (clip-relative time) for fine-grained mix automation. The renderer multiplies both. Supports `db`/`decibels` input, and negative gain-like values are treated as dB attenuation. After automation, verify music with `/preview/audio` or a short render. See `reference/timeline-api.md` → "Audio Level Keyframes".
 - **Audio analysis** — `GET /audio/analyze` returns approximate levels, ducking impact, and mix balance instantly (no render).
 - **Audio metering** — `GET /audio/meter` returns actual LUFS/LRA/true-peak via MLT + ffmpeg ebur128. Use for loudness spec compliance.
 - **Audio-only preview** — `GET /preview/audio` renders a `.wav` without picture cost. Supports `tracks` param to solo specific tracks.
