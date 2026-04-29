@@ -166,6 +166,29 @@ Optional fields: `model`, `duration`, `aspect_ratio`, `refs_strength`, `end_imag
 - Use `@Element1`, `@Element2` etc. for added Elements
 - If `end_image_asset_id` is provided, `start_image_asset_id` is also required
 
+### Video Extension Request
+
+Use video extension when the user wants a generated continuation of an existing clip, not a still-frame hold. The unified route accepts `mode: "extend_video"` or `mode: "video_extend"` and routes to the video-extension manager.
+
+```json
+{
+  "generator": "video",
+  "mode": "extend_video",
+  "model": "fal-ai/veo3.1/extend-video",
+  "prompt": "Continue the slow dolly into a wider view of the neon market, preserving camera direction and lighting.",
+  "video_asset_id": "source-video-asset-id",
+  "duration": 7,
+  "aspect_ratio": "9:16",
+  "sound": "off"
+}
+```
+
+Required fields: `generator`, `mode`, `prompt`, and one of `video_asset_id`, `video_url`, or `source_url`.
+
+Supported extension-capable models include `fal-ai/pixverse/extend`, `fal-ai/pixverse/v6/extend`, `fal-ai/magi/extend-video`, `fal-ai/veo3.1/extend-video`, `fal-ai/vidu/q2/video-extension/pro`, and `kling/v3/video-extend`. Check `/api/v2/models?category=video` for the current catalog and schema.
+
+Provider-specific options can be passed when supported by the model schema, including `resolution`, `style`, `fps`, `num_frames`, `generate_audio_switch`, and `extension_mode`/`extend_direction` (`start` or `end` for models that expose start/end extension).
+
 ### Video Generation with Stored Consistency Resources
 
 Use `element_ids` to reference project-scoped Kling elements and `character_ids` for Seedance characters instead of passing inline references every time.
@@ -306,4 +329,3 @@ You can also pass URLs directly (`start_image_url`, `end_image_url`, `reference_
 **Note on task status:** The `provider` and `model_id` fields on initial task objects may be `null` -- this does not indicate a dispatch failure. The task transitions through `queued` -> `started`/`running` -> `succeeded`/`failed` as normal.
 
 ---
-

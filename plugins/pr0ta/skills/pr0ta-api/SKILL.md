@@ -144,12 +144,13 @@ The primary way to trigger all generation programmatically: a single `POST /api/
 
 **Essential facts:**
 - **`generator` is required on every request.** Sending only `model` and `mode` fails validation. Valid generators: `image`, `video`, `audio`, `music`.
-- **Supported generator/mode pairs:** `image` (`txt_to_img`, `img_to_img`, `ref_to_img`, `edit_img`), `video` (`ref_to_vid`, `txt_to_vid`), `audio` (`txt_to_speech`), `music` (`txt_to_music`). Unsupported combinations return `400`.
+- **Supported generator/mode pairs:** `image` (`txt_to_img`, `img_to_img`, `ref_to_img`, `edit_img`), `video` (`ref_to_vid`, `txt_to_vid`, `extend_video`/`video_extend`), `audio` (`txt_to_speech`), `music` (`txt_to_music`). Unsupported combinations return `400`.
 - **Mode/model compatibility is validated.** Kling models are reference-only (`ref_to_vid`). Seedance and LTX support `txt_to_vid`. Crossing these returns `400`.
 - **Asset IDs resolve server-side** to internal URLs. All referenced assets must belong to the same project. You can also pass URLs directly (`start_image_url`, `reference_image_urls[]`, etc.).
 - **Stored consistency resources** resolve server-side too: `element_ids[]` → Kling element references, `character_ids[]` → Seedance/MuAPI character references. Do not mix — Elements are Kling, Characters are Seedance.
 - **Prompt token rules:** use `@Image1` for Start Image, `@Element1`/`@Element2` for elements, `@Video1`/`@Audio1` for Seedance Omni refs. **Never use `@Image2`** — the End Image is structural, not promptable.
 - **`sound` must be explicit on every video request** (`"on"` or `"off"`). Omitting it produces unpredictable audio.
+- **Video extension is first-class:** use `generator=video`, `mode=extend_video`, a source `video_url` or `video_asset_id`, a prompt, and an extension-capable model such as `fal-ai/pixverse/v6/extend`, `fal-ai/veo3.1/extend-video`, `fal-ai/vidu/q2/video-extension/pro`, `fal-ai/magi/extend-video`, or `kling/v3/video-extend`.
 - **Submission returns a task**, never a finished asset. Extract `task_id` and poll — do not assume 200 on submit means the job succeeds. Async provider errors surface only at terminal polling. The initial task may have `provider: null` / `model_id: null`; this is normal, not a failure.
 
 **Full contract — request/response shapes for every generator, model-capability matrix, image resolution constraints, multi-prompt and camera-control fields, asset-ID resolution rules, submission response fields:** Read `reference/unified-generation.md`.
@@ -223,7 +224,7 @@ Essential facts:
 - **Timeline marks now support `label` and `description`** — use these fields (not the legacy `name`/`note` aliases) for editorial annotations on the timeline.
 - **Timeline diagnostics (`GET /timeline/debug-report`)** — preferred agent preflight before render/export. It bundles track coverage, primary visual gaps, source shortfalls, retime state, audio asset presence, keyframe counts, and render-risk warnings. Use `GET /timeline/analysis` when you only need the raw gaps/overlaps/reuse/shortfall analysis.
 - **Per-clip `isReusedMedia` and `sourceShortfall` flags** — available on the standard clip listing for lightweight reuse and shortfall checks without full timeline analysis.
-- **Source shortfalls** — when a source clip is shorter than the requested program range, PR0TA inserts only the available source and leaves a real gap (no freeze-padding). For I2V card edits, compare source duration vs beat duration before placement; use `/timeline/edits` with `fitToFill: true`, generate/extend a longer clip, or warn about transparent/checkerboard tails. See `reference/source-shortfalls-and-fit-to-fill.md` for the full contract.
+- **Source shortfalls** — when a source clip is shorter than the requested program range, PR0TA inserts only the available source and leaves a real gap (no freeze-padding). For I2V card edits, compare source duration vs beat duration before placement; use `/timeline/edits` with `fitToFill: true`, generate/extend a longer clip, or warn about transparent/checkerboard tails. Analysis and debug reports include frame-safe timing (`renderedProgramFrames`, `renderedProgramDuration`) and render-risk warnings. See `reference/source-shortfalls-and-fit-to-fill.md` for the full contract.
 
 ## Project Image Upload — Reference
 
@@ -261,7 +262,7 @@ Essential facts:
 - **Render preview** — `POST /render` is the preview-task route (queues `timeline_render`). Loads saved timeline automatically. Control-only body (empty `{}` or `from`/`to`/`resolution`) is valid. Zero-clip timelines return `400`.
 - **Final export** — `POST /export` is the final-export route for master delivery. Use `/render` for iteration, `/export` when the cut is locked.
 - **Clip metadata** — timeline clips now expose `sourceMedia` (width, height, aspectRatio, duration, fitsSequence) and `generation_context` (prompt, model) for aspect-fit auditing and provenance checks.
-- **Source shortfalls** — when source media is shorter than the requested edit duration, PR0TA inserts only the available source and leaves a real gap. No freeze-padding. Use `fitToFill: true` to retime explicitly. See `reference/source-shortfalls-and-fit-to-fill.md`.
+- **Source shortfalls** — when source media is shorter than the requested edit duration, PR0TA inserts only the available source and leaves a real gap. No freeze-padding. Use `fitToFill: true` to retime explicitly, then verify the frame-safe fields and preview-render warnings. See `reference/source-shortfalls-and-fit-to-fill.md`.
 
 ## Editorial Primitives — Reference
 

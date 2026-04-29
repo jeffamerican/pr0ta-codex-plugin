@@ -4,7 +4,9 @@ PR0TA treats too-short source media like a professional NLE: it cuts only the av
 
 For generated I2V card edits, compare the generated source duration to the intended beat duration before placement. If the source is shorter, either generate/extend a long enough animation or place it through `/timeline/edits` with `fitToFill: true`. Do not place a 3-5s animation into an 8-10s beat through raw clip creation and hope the renderer will pad it.
 
-Renderer contract: a valid `fitToFill` clip must have enough source range, after applying `speed`, to cover the requested program duration. If the renderer cannot cover the full requested range, render preparation should fail or surface a warning instead of silently producing a transparent/checkerboard tail.
+Renderer contract: a valid `fitToFill` clip must have enough source range, after applying `speed`, to cover the requested program duration. PR0TA computes fit-to-fill against rendered frame duration, not just raw decimal seconds, so sub-frame tails are treated as real render risks. If the renderer cannot cover the full requested range, render preparation should fail or surface a warning instead of silently producing a transparent/checkerboard tail.
+
+Never solve short media by holding the last frame to the render end. Use a deliberate generated extension, a different source, a trim, or explicit retiming.
 
 ---
 
@@ -74,7 +76,8 @@ The analysis response includes source-shortfall diagnostics in `summary.sourceSh
   "summary": {
     "gapCount": 3,
     "reusedMediaCount": 2,
-    "sourceShortfallCount": 1
+    "sourceShortfallCount": 1,
+    "shortVisualClipCount": 0
   },
   "sourceShortfalls": [
     {
@@ -88,6 +91,9 @@ The analysis response includes source-shortfall diagnostics in `summary.sourceSh
       "requestedDuration": 5.0,
       "availableSourceDuration": 3.0,
       "shortfallDuration": 2.0,
+      "authoredDuration": 5.0,
+      "requiredFrames": 150,
+      "availableFrames": 90,
       "gapStart": 55.0,
       "gapEnd": 57.0,
       "speed": 1.0,
@@ -114,6 +120,8 @@ GET /api/post-production/{project_name}/timeline/debug-report?sequence_id=timeli
 ```
 
 The debug report bundles track coverage, primary visual gaps, source-duration-vs-program-duration, retime state, audio asset presence, keyframe counts, and render-risk warnings in one response.
+
+Render and export results may also include `renderedPixelGaps[]` plus `renderWarnings[]` entries with `code: "rendered_pixel_gap"` when sampled output frames look transparent or checkerboard-like. Treat those as visible failures even when timeline gaps are zero.
 
 ---
 
@@ -145,7 +153,7 @@ When a clip exceeds available source media, the clip entry includes `sourceShort
 
 Use `/timeline/clips` when working clip-by-clip. Use `/timeline/analysis` for full preflight diagnostics.
 
-Clip reads/lists also expose retime state when known: `fitToFill`, `speed`, `sourceDuration`, `programDuration`, `sourceInPoint`, `sourceOutPoint`, `sourceSpan`, `effectivePlaybackDuration`, and `retimeReason`.
+Clip reads/lists also expose retime state when known: `fitToFill`, `frameSafeFitToFill`, `speed`, `sourceDuration`, `programDuration`, `renderedProgramFrames`, `renderedProgramDuration`, `sourceInPoint`, `sourceOutPoint`, `sourceSpan`, `effectivePlaybackDuration`, and `retimeReason`.
 
 ---
 
@@ -169,6 +177,8 @@ effectivePlaybackDuration = (sourceOutPoint - sourceInPoint) / speed
 ```
 
 For `fitToFill` clips, `effectivePlaybackDuration` must match `programDuration` within a small frame-rounding tolerance. If it does not, treat the clip as render-risk: regenerate/extend the source, adjust the source range, or redo the edit through `/timeline/edits`.
+
+For frame-exact work, prefer `renderedProgramDuration` and `renderedProgramFrames` over hand-rounded decimals. A clip authored as `2.999s` at 30 fps still occupies 90 rendered frames (`3.0s`), and source coverage must satisfy that frame-snapped duration.
 
 #### Three-Point Fit To Fill (Slow Motion)
 
@@ -242,8 +252,9 @@ Edit requests remain strict 3-point edits: exactly three of `source.in`, `source
 - **`fitToFill: true`:** Use only when the user explicitly wants automatic retiming. The written `speed` value is part of the clip state and affects the renderer.
 - **Manual `speed`:** Use when the user wants a specific slow-motion or speed-up value rather than automatic calculation.
 - **Do not rely on freeze frames as padding.** PR0TA does not freeze-pad. If a clip is too short and `fitToFill` is not set, the tail is a real gap.
+- **Do not hold the last frame to render end.** That is not an acceptable repair path. Trim, replace, retime, or generate/extend new media.
 - **Do not treat accepted `fitToFill` as final proof.** Check `/timeline/clips` or `/timeline/debug-report` for `fitToFill`, `speed`, `sourceSpan`, `programDuration`, and `effectivePlaybackDuration`, then render a preview.
-- **Verify transparent/checkerboard tails.** Black-frame scans are not enough. Render a preview and sample frames around every `programDuration > sourceDuration` beat or every `sourceShortfall` warning.
+- **Verify transparent/checkerboard tails.** Black-frame scans are not enough. Render a preview and sample frames around every `programDuration > sourceDuration` beat or every `sourceShortfall` warning. Also inspect `renderedPixelGaps[]` / `renderWarnings[]` from render/export responses when present.
 
 ### User-Facing Copy Recommendations
 

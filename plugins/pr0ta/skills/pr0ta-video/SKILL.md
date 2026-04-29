@@ -39,6 +39,7 @@ For any shot where consistency, continuity, or precise intent matter, **generate
 - **Need quad-modal references (image + video + audio) →** Seedance Omni.
 - **Need audio-driven rhythm matching →** Seedance Omni.
 - **Need a long continuous sequence (30s+) with consistent characters/audio →** Seedance Omni via **extension chaining** — use "Text with Reference" with the previous clip as `@video1` to seamlessly continue from the last frame. See `reference/seedance-omni.md` → "Seamless Video Extension".
+- **Need to extend an existing clip as new generated motion →** use unified video extension: `generator=video`, `mode=extend_video`, a source `video_asset_id`/`video_url`, prompt, and an extension model such as `fal-ai/pixverse/v6/extend`, `fal-ai/veo3.1/extend-video`, `fal-ai/vidu/q2/video-extension/pro`, `fal-ai/magi/extend-video`, or `kling/v3/video-extend`.
 - **Need Motion Brush →** Kling V3.
 - **Budget is tight →** Kling (14.70/s) over Seedance (63.00/s).
 - **Text-only, no references →** LTX-2.3 (6.30/s) or Seedance T2V variant.
@@ -128,6 +129,21 @@ curl -X POST "https://app.pr0ta.com/api/v2/projects/$PROJECT_ID/generate" \
     "aspect_ratio": "16:9",
     "sound": "off",
     "cfg": 0.5
+  }'
+
+# Video extension from an existing source clip
+curl -X POST "https://app.pr0ta.com/api/v2/projects/$PROJECT_ID/generate" \
+  -H "Authorization: Bearer $PR0TA_PAT" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "generator": "video",
+    "mode": "extend_video",
+    "model": "fal-ai/pixverse/v6/extend",
+    "prompt": "Continue the same camera move into denser fog while preserving the shot geometry.",
+    "video_asset_id": "uuid-of-source-video",
+    "duration": 5,
+    "aspect_ratio": "9:16",
+    "sound": "off"
   }'
 
 # Returns: { "task_id": "...", "status": "queued" }
