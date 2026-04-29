@@ -16,7 +16,22 @@ GET /timeline/state?sequence_id=timeline_v2   — Normalized state + _clip_index
 GET /timeline/clips?sequence_id=timeline_v2   — Flattened clip list with track metadata
 ```
 
-`POST /timeline` and `PATCH /timeline` both merge — submitting `{ "audioMix": { ... } }` updates `audioMix` without touching clips or snapshots. Both return updated `version` (integer) and `lastSaved` (ISO 8601 datetime with timezone offset, e.g. `2026-04-12T19:39:30.991013+00:00`). Prefer `PATCH` for single-field updates.
+`PATCH /timeline` merges submitted keys into existing state — submitting `{ "audioMix": { ... } }` updates `audioMix` without touching clips or snapshots. `POST /timeline` replaces the sequence and requires a full `tracks` array. Both return `sequence_id`, updated `version` (integer), and `lastSaved` (ISO 8601 datetime with timezone offset, e.g. `2026-04-12T19:39:30.991013+00:00`). Prefer `PATCH` for single-field updates.
+
+### Sequence Settings
+
+Set sequence dimensions before clip assembly and always target the rendered sequence explicitly:
+
+```http
+PATCH /api/post-production/{project_id}/timeline?sequence_id=timeline_v2
+Content-Type: application/json
+
+{
+  "sequence": { "width": 1080, "height": 1920, "frameRate": 30 }
+}
+```
+
+Omitting `sequence_id` when changing `sequence` returns `400 sequence_id_required`. The canonical editable/rendered sequence is `timeline_v2`, and render status payloads should report the same `full_payload.sequence` used for the completed MP4.
 
 **PATCH accepts two shapes:**
 
