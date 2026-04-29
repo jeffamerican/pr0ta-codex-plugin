@@ -161,7 +161,7 @@ Clip data is nested under a `clip` key; placement under a `placement` key. Use `
 
 **`POST /timeline/clips` always creates a new clip — it does not upsert.** If you append clips iteratively via POST and don't track the returned `clip_id`, you will duplicate clips. Use `PATCH /timeline/clips/{clip_id}` for updates. Field-observed failure mode: ~30 intended clips ballooned to 72 after iterative append-only POSTs.
 
-**Retiming rule:** Prefer `POST /timeline/edits` with `fitToFill: true` for editorial retiming. Raw `POST /timeline/clips` can create a retimed clip only when you provide a clear source range (`outPoint` or `sourceMedia.duration`) or explicit positive `speed`; otherwise it returns a 4xx validation error. Do not rely on implicit retiming.
+**Retiming rule:** Prefer `POST /timeline/edits` with `fitToFill: true` for editorial retiming. Raw `POST /timeline/clips` can create a retimed clip only when you provide a clear source range (`outPoint` or `sourceMedia.duration`) or explicit positive `speed`; otherwise it returns a 4xx validation error. Do not rely on implicit retiming. Before render, `fitToFill` clips must have `(sourceOutPoint - sourceInPoint) / speed` covering `programDuration` within frame tolerance; otherwise the render path should fail or warn instead of producing a transparent/checkerboard tail.
 
 **Clip-level timing fields:**
 - `start` — clip start position on the timeline in seconds (authoritative).
