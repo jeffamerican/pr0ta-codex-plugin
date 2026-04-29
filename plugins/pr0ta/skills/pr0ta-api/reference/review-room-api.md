@@ -8,6 +8,17 @@ Skills users can submit one or more project assets to a PR0TA client review room
 
 This workflow is exposed through **PR0TA agent/MCP tools** (`enable_studio_mode`, `submit_assets_for_review`, `get_review_annotations`). The review tools are available to `editor`, `director`, `producer`, and `script_supervisor` roles.
 
+When ingesting review annotations for a timeline edit, generate a shot replacement checklist before making changes. Each open timestamped note should be keyed by:
+
+- `timestamp` / `start_time_seconds`
+- nearby transcript phrase or word range, if transcript timing is available
+- existing timeline `clip_id`
+- existing `asset_id`
+- reviewer note and annotation geometry
+- proposed replacement action
+
+This checklist prevents vague review notes from turning into broad rebuilds. Resolve items with targeted edits, marks, trims, or replacement assets, then mark the annotation addressed.
+
 ## Studio Mode Setup
 
 Review-room creation requires Studio mode on the project. API-only skills can enable it without using the PR0TA web UI.

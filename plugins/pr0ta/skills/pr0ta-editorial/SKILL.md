@@ -250,7 +250,9 @@ See `pr0ta-api` → "Asset Tagging, Readability Filters, and Timeline Analysis" 
 
 ### Incorporating Client Review Feedback
 
-When a client review round is active (see `pr0ta-api` → "Client Review Room API"), pull annotations via `get_review_annotations` and treat each `open` annotation as an editorial note. Annotations carry `start_time_seconds` and frame-normalized `geometry` — use these to locate the exact beat the reviewer is commenting on. Apply feedback using the editorial primitives below (marks, trims, 3-point edits). Mark annotations `addressed` after fixing. Do not ship with `open` annotations unless the user has explicitly waived them.
+When a client review round is active (see `pr0ta-api` → "Client Review Room API"), pull annotations via `get_review_annotations` and treat each `open` annotation as an editorial note. Annotations carry `start_time_seconds` and frame-normalized `geometry` — use these to locate the exact beat the reviewer is commenting on.
+
+Before editing, turn the annotations into a shot replacement checklist keyed by timestamp, nearby transcript phrase, existing timeline `clip_id`, existing `asset_id`, reviewer note, and proposed action. Apply feedback using the editorial primitives below (marks, trims, 3-point edits). Mark annotations `addressed` after fixing. Do not ship with `open` annotations unless the user has explicitly waived them.
 
 ### Mark-Driven Editing
 

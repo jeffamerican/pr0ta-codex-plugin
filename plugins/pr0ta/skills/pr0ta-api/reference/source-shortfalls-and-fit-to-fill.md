@@ -121,7 +121,7 @@ GET /api/post-production/{project_name}/timeline/debug-report?sequence_id=timeli
 
 The debug report bundles track coverage, primary visual gaps, source-duration-vs-program-duration, retime state, audio asset presence, keyframe counts, and render-risk warnings in one response.
 
-Render and export results may also include `renderedPixelGaps[]` plus `renderWarnings[]` entries with `code: "rendered_pixel_gap"` when sampled output frames look transparent or checkerboard-like. Treat those as visible failures even when timeline gaps are zero.
+Render and export results may also include `timelineMediaGaps[]` plus `renderWarnings[]` entries with `code: "timeline_media_gap"`. These are deterministic timeline/media-coverage failures: rendered frames where no visual media source covers the program interval. Treat them as visible failures. The detector works in rendered frames and ignores a one-frame sub-frame rounding tail, so normal editorial math does not become a false short trim. Do not use gray/checkerboard pixel heuristics as the source of truth; use pixel inspection only to adjudicate what the viewer saw after the timeline has already identified a no-media interval.
 
 ---
 
@@ -254,7 +254,8 @@ Edit requests remain strict 3-point edits: exactly three of `source.in`, `source
 - **Do not rely on freeze frames as padding.** PR0TA does not freeze-pad. If a clip is too short and `fitToFill` is not set, the tail is a real gap.
 - **Do not hold the last frame to render end.** That is not an acceptable repair path. Trim, replace, retime, or generate/extend new media.
 - **Do not treat accepted `fitToFill` as final proof.** Check `/timeline/clips` or `/timeline/debug-report` for `fitToFill`, `speed`, `sourceSpan`, `programDuration`, and `effectivePlaybackDuration`, then render a preview.
-- **Verify transparent/checkerboard tails.** Black-frame scans are not enough. Render a preview and sample frames around every `programDuration > sourceDuration` beat or every `sourceShortfall` warning. Also inspect `renderedPixelGaps[]` / `renderWarnings[]` from render/export responses when present.
+- **Verify no-media tails.** Black-frame scans and gray/checkerboard pixel heuristics are not enough. Inspect `timelineMediaGaps[]` / `renderWarnings[]` from render/export responses and sample frames only to confirm the user-visible result around the reported timestamp.
+- **Adjudicate render warnings.** For every `timeline_media_gap`, fetch a frame near `start`, attach the thumbnail or frame path in your notes, classify it as actual no-media/checkerboard, covered by another intended visual layer, or false alarm, then list the repair action.
 
 ### User-Facing Copy Recommendations
 
