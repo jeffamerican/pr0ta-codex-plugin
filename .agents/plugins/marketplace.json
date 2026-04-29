@@ -1,0 +1,20 @@
+{
+  "name": "pr0ta-codex",
+  "interface": {
+    "displayName": "PR0TA Codex Plugins"
+  },
+  "plugins": [
+    {
+      "name": "pr0ta",
+      "source": {
+        "source": "local",
+        "path": "./plugins/pr0ta"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

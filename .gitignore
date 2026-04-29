@@ -1,0 +1,7 @@
+.DS_Store
+*.plugin
+*.zip
+node_modules/
+dist/
+.env
+.env.*

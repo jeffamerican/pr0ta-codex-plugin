@@ -1,0 +1,41 @@
+{
+  "name": "pr0ta",
+  "version": "5.14.0",
+  "description": "Automate creative media production on PR0TA: AI image, video, voice, music, client review rooms, downloads, and timeline workflows.",
+  "author": {
+    "name": "Jeffery Lando"
+  },
+  "homepage": "https://www.pr0ta.com/downloads/skills/",
+  "repository": "https://github.com/jeffamerican/pr0ta-codex-plugin",
+  "license": "MIT",
+  "keywords": [
+    "pr0ta",
+    "video-production",
+    "image-generation",
+    "video-generation",
+    "voice",
+    "music",
+    "review"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "PR0TA",
+    "shortDescription": "Creative media production workflows for PR0TA.",
+    "longDescription": "Guides Codex through PR0TA app and API workflows for generating images, videos, voiceovers, music, and sound effects, then assembling, reviewing, downloading, and refining production timelines.",
+    "developerName": "Jeffery Lando",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://www.pr0ta.com/downloads/skills/",
+    "privacyPolicyURL": "https://github.com/jeffamerican/pr0ta-codex-plugin/blob/main/PRIVACY-POLICY.md",
+    "defaultPrompt": [
+      "Plan a PR0TA production workflow.",
+      "Generate PR0TA media with API calls.",
+      "Review and refine a PR0TA timeline."
+    ],
+    "brandColor": "#0F172A"
+  }
+}
