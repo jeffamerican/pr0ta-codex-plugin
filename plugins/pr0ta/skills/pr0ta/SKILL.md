@@ -71,7 +71,7 @@ The platform uses a credit-based system. Each generation costs credits depending
 1. **Authenticate** -- Use the PAT: `Authorization: Bearer pat_xxxxxxxxxxxxx`. See the `pr0ta-api` skill for full auth details.
 2. **Create or select a project** -- Call `POST /api/v2/projects` to create a dedicated project for the task, or `GET /api/v2/projects` to list existing ones. Use the returned `id` directly in all subsequent API calls. **Note:** PATs cannot use `?select=true` or the `/select` endpoint -- active project selection requires a JWT session token. This is fine for API workflows since you pass the project ID explicitly.
 3. **Set up consistency resources** -- For multi-shot productions, create Element bundles and Character profiles before any generation. See the `pr0ta-consistency` skill.
-4. Invoke the `pr0ta-api` skill for endpoint details and request schemas
+4. Load `pr0ta-api` only when the active domain skill does not include the endpoint detail, auth nuance, or request schema you need.
 
 ### Companion Skill Router
 

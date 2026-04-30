@@ -101,14 +101,14 @@ For the full, authoritative per-provider field contract see `reference/video-ref
 **Copy-paste ready.** For the full parameter reference, see `pr0ta-api`.
 
 ```bash
-# Seedance 2.0 Omni text-to-video
+# Seedance 2.0 T2V text-to-video
 curl -X POST "https://app.pr0ta.com/api/v2/projects/$PROJECT_ID/generate" \
   -H "Authorization: Bearer $PR0TA_PAT" \
   -H "Content-Type: application/json" \
   -d '{
     "generator": "video",
     "mode": "txt_to_vid",
-    "model": "muapi/seedance-2.0-omni-reference",
+    "model": "muapi/seedance-v2.0-t2v",
     "prompt": "A woman walks through a rain-soaked neon city at night, reflections on wet pavement.",
     "duration": 5,
     "aspect_ratio": "16:9",
@@ -287,7 +287,7 @@ Duration is **not** a single global range. Each provider family publishes its ow
 - Need a precise clip length that does not match the enum? Generate at the nearest supported value **above** your target and trim on the post-production timeline (`PATCH /timeline/clips/{id}` with `in_point`/`out_point`). Never send unsupported durations to the generator.
 - For Kling Fal endpoints, `3..15` gives real editorial flexibility — use it instead of forcing Seedance beats.
 - For animated-card or diagram-driven I2V, write a custom prompt per card. Preserve exact typography and composition, animate only the depicted scene/diagram elements, keep the requested aspect ratio (for example 9:16), and fall back per failed card rather than changing the whole batch strategy.
-- Before placing I2V into a longer beat, compare source duration to the beat duration. If source is shorter, use `/timeline/edits` with `fitToFill: true`, generate/extend a longer animation, or get explicit approval for a still/empty tail. Do not rely on raw `/timeline/clips` to hide the mismatch.
+- Before placing I2V into a longer beat, compare source duration to the beat duration. If source is shorter, use `/timeline/edits` with `fitToFill: true` when the retime is intentional, generate/extend a longer animation, or add a deliberate still/companion visual as an actual timeline clip. Do not leave an empty tail, and do not rely on raw `/timeline/clips` to hide the mismatch.
 
 ## Prefer Longer Generations for Consistency
 
