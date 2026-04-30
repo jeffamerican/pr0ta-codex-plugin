@@ -131,6 +131,21 @@ Treat either diagnostic as a visible failure until adjudicated. Pixel inspection
 
 ---
 
+### Frame-Native NLE Timing
+
+PR0TA stores picture edits as standard NLE-style half-open frame intervals:
+
+- program range: `[startFrame, endFrame)`
+- `endFrameInclusive = endFrame - 1`
+- seconds fields are derived from the sequence frame rate
+- source trims use `sourceInFrame` / `sourceOutFrame` when frame-native fields are supplied
+
+On save and render, video/title tracks are normalized onto integer frames. Adjacent same-track picture cuts with a 1-2 frame authored gap are snapped closed by pulling the incoming cut earlier; adjacent 1-2 frame overlaps are snapped by trimming the outgoing cut. This is an editorial drift correction, not a creative hold or freeze. Do not create or request "hold last frame to render end" behavior.
+
+For repairs from review notes, prefer frame-native inputs (`startFrame`, `durationFrames`, `sourceInFrame`, `sourceOutFrame`) and verify clip reads expose matching `startFrame`, `endFrame`, and `durationFrames`.
+
+---
+
 ### Per-Clip Shortfall Metadata
 
 `GET /api/post-production/{project_name}/timeline/clips?sequence_id=timeline_v2`

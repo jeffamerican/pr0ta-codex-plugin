@@ -179,6 +179,29 @@ Field notes:
 - `submission_id` — optional. Filter feedback to one submitted asset.
 - `resolution_status` — optional. Accepted values: `open`, `addressed`, `wont_fix`. Omit to return all states.
 
+### REST Routes
+
+Public share-link routes:
+
+```http
+GET    /api/public/workspace/review-rounds/{share_token}
+GET    /api/public/workspace/review-rounds/{share_token}/annotations
+POST   /api/public/workspace/review-rounds/{share_token}/annotations
+PATCH  /api/public/workspace/review-rounds/{share_token}/annotations/{annotation_id}
+DELETE /api/public/workspace/review-rounds/{share_token}/annotations/{annotation_id}
+```
+
+Authenticated project routes:
+
+```http
+POST   /api/workspace/{project_id}/studio/review-annotations
+GET    /api/workspace/{project_id}/studio/review-annotations/markers
+PATCH  /api/workspace/{project_id}/studio/review-annotations/{annotation_id}
+DELETE /api/workspace/{project_id}/studio/review-annotations/{annotation_id}
+```
+
+For authenticated agent work, prefer `get_review_annotations`; it returns annotations plus review events in one payload. Do not invent `/api/workspace/.../annotations` routes.
+
 ### Response
 
 ```json
@@ -199,6 +222,11 @@ Field notes:
       "end_time_seconds": null,
       "frame_rate": 30,
       "frame_index": 375,
+      "displayed_frame_index": 375,
+      "rounded_frame_index": 375,
+      "ceil_frame_index": 375,
+      "frame_index_policy": "floor",
+      "media_current_time_seconds": 12.5,
       "timecode": "00:00:12:15",
       "geometry": {
         "x": 0.5,
