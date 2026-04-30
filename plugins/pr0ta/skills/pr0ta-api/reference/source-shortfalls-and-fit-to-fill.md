@@ -140,9 +140,22 @@ PR0TA stores picture edits as standard NLE-style half-open frame intervals:
 - seconds fields are derived from the sequence frame rate
 - source trims use `sourceInFrame` / `sourceOutFrame` when frame-native fields are supplied
 
-On save and render, video/title tracks are normalized onto integer frames. Adjacent same-track picture cuts with a 1-2 frame authored gap are snapped closed by pulling the incoming cut earlier; adjacent 1-2 frame overlaps are snapped by trimming the outgoing cut. This is an editorial drift correction, not a creative hold or freeze. Do not create or request "hold last frame to render end" behavior.
+On save and render, video/title tracks are normalized onto integer frames. Adjacent same-track picture cuts with a 1-2 frame authored gap are snapped closed by extending the outgoing side to the incoming cut frame; adjacent 1-2 frame overlaps are snapped by trimming the outgoing side. This preserves the incoming cut point because narration and beat-aligned incoming frames own the next beat. It is an editorial drift correction, not a creative hold or freeze. Do not create or request "hold last frame to render end" behavior.
 
 For repairs from review notes, prefer frame-native inputs (`startFrame`, `durationFrames`, `sourceInFrame`, `sourceOutFrame`) and verify clip reads expose matching `startFrame`, `endFrame`, and `durationFrames`.
+
+### Beat-Locked Overlap Repair
+
+For beat-accurate social-video cuts, do not pull the incoming shot earlier to hide a boundary artifact unless the user explicitly asks for a timing change. The canonical repair is:
+
+```text
+incoming.startFrame = exact beat/cut frame
+outgoing.endFrame = incoming.startFrame + tailHandleFrames
+```
+
+Use a 4-8 frame tail handle as the default repair window. The incoming/top/latest visual owns the beat frame; the outgoing tail exists only as an underlap/handle to cover transparent source-tail behavior near the boundary. If the current timeline representation cannot express the overlap cleanly on the same track, reconform from the authoritative beat/cut list or place the handle on an appropriate lower visual layer rather than moving the incoming edit.
+
+After reconform, treat render-level arrays as authoritative: `timelineMediaGaps`, `renderedPixelGaps`, `transparentOutputFrames`, and `renderWarnings` must all be clean. If render fails with `fitToFill clip ... cannot cover requested duration`, repair the source range/speed or regenerate/extend media; do not hide it by shifting beat-locked timeline cuts.
 
 ---
 

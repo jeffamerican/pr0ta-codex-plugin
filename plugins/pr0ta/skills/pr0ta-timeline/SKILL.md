@@ -234,8 +234,10 @@ Adjacent same-track dissolves and crossfades are synthesized as outgoing-tail ov
 Treat video/title edits as frame-native NLE intervals, not decimal-second guesses. PR0TA normalizes picture clips to `[startFrame, endFrame)` on save/render and derives seconds from the sequence frame rate.
 
 - Use `startFrame`, `durationFrames`, `sourceInFrame`, and `sourceOutFrame` for frame-critical repairs.
-- Same-track picture gaps or overlaps of 1-2 frames are editorial drift and should snap to the adjacent cut.
-- Do not fix render-boundary defects by holding the last frame. Trim, retime, extend/regenerate source media, or replace the shot.
+- Same-track picture gaps or overlaps of 1-2 frames are editorial drift. Preserve the incoming cut frame and adjust the outgoing side.
+- For narration/beat-aligned edits, do not pull incoming cut-ins earlier unless the user asks for a timing change.
+- Boundary checkerboard repairs should use an outgoing tail handle/underlap, usually 4-8 frames, under the beat-locked incoming shot.
+- Do not fix render-boundary defects by holding the last frame. Trim, retime, extend/regenerate source media, add an outgoing tail handle, or replace the shot.
 - After a repair, read `/timeline/clips` and verify `startFrame`, `endFrame`, `endFrameInclusive`, and `durationFrames` match the intended cut.
 
 **Render preview:** `POST /render` is the preview-task route. It loads the saved post-production timeline automatically. Send an empty body `{}` or control-only fields (`from`, `to`, `resolution`, `width`, `height`, `format`). You do not need to send full timeline JSON. If the timeline contains zero clips, the route returns `400`.
