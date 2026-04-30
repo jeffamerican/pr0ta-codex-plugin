@@ -121,10 +121,11 @@ GET /api/post-production/{project_name}/timeline/debug-report?sequence_id=timeli
 
 The debug report bundles track coverage, primary visual gaps, source-duration-vs-program-duration, retime state, audio asset presence, keyframe counts, and render-risk warnings in one response.
 
-Render and export results may include two complementary diagnostics:
+Render and export results always include explicit diagnostic arrays, even when empty:
 
 - `timelineMediaGaps[]` plus `renderWarnings[]` entries with `code: "timeline_media_gap"` — deterministic timeline/media-coverage failures: rendered frames where no visual media source covers the program interval. The detector works in rendered frames and ignores a one-frame sub-frame rounding tail, so normal editorial math does not become a false short trim.
-- `renderedPixelGaps[]` plus `renderWarnings[]` entries with `code: "rendered_pixel_gap"` — post-render frame probes around clip boundaries found transparent/checkerboard output. These entries include `start_frame`, `end_frame`, `start_timecode`, `end_timecode`, `duration_frames`, `clip_id`, `track_id`, confidence, and usually a thumbnail.
+- `renderedPixelGaps[]` plus `renderWarnings[]` entries with `code: "rendered_pixel_gap"` — post-render exact-frame probes around clip boundaries found transparent/checkerboard output. These entries include `start_frame`, `end_frame`, `start_timecode`, `end_timecode`, `duration_frames`, `clip_id`, `track_id`, confidence, and usually a thumbnail.
+- `transparentOutputFrames[]` — one item per bad rendered frame with `frame` / `frame_index`, `time_seconds`, `timecode`, `expectedClipId`, `expectedClipLabel`, `assetId`, `trackId`, confidence, and thumbnail when available. Use this for frame-by-frame repairs and review annotation matching.
 
 Treat either diagnostic as a visible failure until adjudicated. Pixel inspection is the render-level truth for checkerboard output; timeline coverage explains deterministic no-media intervals.
 
@@ -174,6 +175,8 @@ POST /api/post-production/{project_name}/timeline/edits/preview
 ```
 
 Raw `POST /timeline/clips` is not the canonical retiming path. It can accept `fitToFill` only when the payload also provides `outPoint`, `sourceMedia.duration`/`sourceDuration`, or an explicit positive `speed`; otherwise it returns a validation error so agents know to use `/timeline/edits`.
+
+`PATCH /timeline/clips/{clip_id}` and raw clip creation accept frame-native timing fields for repairs: `startFrame`, `durationFrames`, `sourceInFrame`, and `sourceOutFrame` (snake_case aliases also work). PR0TA resolves them against the sequence frame rate and stores canonical seconds fields. Prefer these fields when repairing review annotations that already include `frame_index` and timecode.
 
 Before render, verify the relationship:
 
@@ -261,7 +264,7 @@ Safe render option: send `avoidTransparentFrames: true` (or `diagnostics.avoidTr
 - **Do not rely on freeze frames as padding.** PR0TA does not freeze-pad. If a clip is too short and `fitToFill` is not set, the tail is a real gap.
 - **Do not hold the last frame to render end.** That is not an acceptable repair path. Trim, replace, retime, or generate/extend new media.
 - **Do not treat accepted `fitToFill` as final proof.** Check `/timeline/clips` or `/timeline/debug-report` for `fitToFill`, `speed`, `sourceSpan`, `programDuration`, and `effectivePlaybackDuration`, then render a preview.
-- **Verify frame ranges, not loose timestamps.** At 30fps, one frame is 0.033333s. Use `start_frame` / `end_frame` / timecode from `renderedPixelGaps[]` or `renderFrameCoverage`, not hand-rounded seconds.
+- **Verify frame ranges, not loose timestamps.** At 30fps, one frame is 0.033333s. Use `transparentOutputFrames[]`, `start_frame` / `end_frame`, and timecode from `renderedPixelGaps[]` or `renderFrameCoverage`, not hand-rounded seconds.
 - **Adjudicate render warnings.** For every `timeline_media_gap` or `rendered_pixel_gap`, fetch or use the attached frame thumbnail, classify it as actual no-media/checkerboard, covered by another intended visual layer, or false alarm, then list the clip/timestamp repair action.
 
 ### User-Facing Copy Recommendations

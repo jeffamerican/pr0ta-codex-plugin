@@ -166,13 +166,15 @@ Clip data is nested under a `clip` key; placement under a `placement` key. Use `
 **Clip-level timing fields:**
 - `start` — clip start position on the timeline in seconds (authoritative).
 - `duration` — clip playback duration in seconds (authoritative).
+- `startFrame` / `durationFrames` — frame-native inputs accepted by clip create/update and resolved against the sequence frame rate into canonical seconds.
 - `start_ms` / `duration_ms` — millisecond-precision equivalents (`start_ms = start × 1000`). These are compatibility/precision helpers, not a separate model. Do not assume `start` is always `0.0` or `duration` is always `1.0`.
 - `in_point` / `out_point` — trim points within the source asset.
+- `sourceInFrame` / `sourceOutFrame` — frame-native source trim inputs accepted by clip create/update and resolved into `inPoint` / `outPoint`.
 - `fitToFill` / `speed` — explicit retime state when a source range is stretched/compressed to a program duration.
 - `kenBurns` — Ken Burns motion (see below).
 - `transition` — transition to the next clip (dissolve, wipe, fade, etc.).
 
-Clip reads/lists expose retime diagnostics when known: `fitToFill`, `speed`, `sourceDuration`, `programDuration`, `sourceInPoint`, `sourceOutPoint`, `sourceSpan`, `effectivePlaybackDuration`, and `retimeReason`.
+Clip reads/lists expose retime diagnostics when known: `fitToFill`, `frameSafeFitToFill`, `speed`, `sourceDuration`, `programDuration`, `renderedProgramFrames`, `renderedProgramDuration`, `startFrame`, `endFrame`, `endFrameInclusive`, `sourceInFrame`, `sourceOutFrame`, `sourceInPoint`, `sourceOutPoint`, `sourceSpan`, `effectivePlaybackDuration`, and `retimeReason`.
 
 **Clip metadata (read-only, present on `GET /timeline`):**
 - `sourceMedia.width` / `height` — original media dimensions (when known from asset metadata).
