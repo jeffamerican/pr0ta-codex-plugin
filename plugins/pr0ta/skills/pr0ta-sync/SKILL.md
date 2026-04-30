@@ -1,6 +1,6 @@
 ---
 name: pr0ta-sync
-description: "PR0TA audio-visual sync and production planning — cue sheets, visual-first vs narration-first strategy, continuous audio generation, the narration timeline API (26 endpoints), and montage best practices. Read BEFORE any multi-asset production (trailers, reels, documentaries, ads, explainers, music videos). Also read when planning timing, building a cue sheet, deciding between visual-first and narration-first pipelines, working with the narration timeline API, or re-transcribing after audio changes. This skill covers the planning and strategy layer — if you are about to generate multiple assets without a timing plan, stop and read this first."
+description: "PR0TA audio-visual sync and production planning. Read for cue sheets, timing plans, narration-first or visual-first strategy, narration timeline workflows, montage planning, and re-transcription after audio changes."
 ---
 
 # Audio-Visual Synchronization & Production Planning
@@ -268,7 +268,7 @@ This is where planning ends and execution begins. All assembly — clip placemen
 2. **Add visual clips** via `POST /timeline/clips` with Ken Burns presets on the `video` track.
 3. **Add audio clips** — narration clips on `dialogue`, music clips on `music`, SFX on `sfx` — with the right start times. Never stack concurrent audio on one track.
 4. **Configure audio mix** via `POST /timeline` — ducking, narration offset, per-clip volume.
-5. **Check the mix** — escalate from cheapest to most expensive: `GET /audio/analyze` (instant approximate diagnostic) → `GET /audio/meter` (actual LUFS/LRA/true-peak if loudness spec matters) → `GET /preview/audio` (listen to audio-only `.wav`) → `GET /preview` (full picture+sound) only when needed.
+5. **Check the mix** — escalate from cheapest to most expensive: `GET /audio/analyze` (instant render-envelope diagnostic) → `GET /audio/meter` (actual LUFS/LRA/true-peak if loudness spec matters) → `GET /preview/audio` (listen to audio-only `.wav`) → `GET /preview` (full picture+sound) only when needed.
 6. **Snapshot** before major passes: `POST /timeline/snapshot`.
 7. **Hand off to the user** for browser-based review at `app.pr0ta.com/timeline`.
 8. **Read back** the updated state with `GET /timeline/state`, address remaining notes.

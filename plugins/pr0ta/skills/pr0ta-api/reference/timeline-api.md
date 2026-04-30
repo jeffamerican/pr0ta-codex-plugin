@@ -294,7 +294,7 @@ The backend normalizes these field names to `volumeKeyframes`: `audioLevelKeyfra
 
 Ducking (`audioMix.ducking`) generates additional clip-level `volumeKeyframes` on the ducked source clips. If both manual keyframes and ducking are present, PR0TA merges/normalizes keyframes and the rendered gain envelope reflects the combined automation. Use `audioMix.ducking` for automatic dialogue-aware ducking. Use `volumeKeyframes` for intentional manual mix moves. For precise manual control, prefer explicit `volumeKeyframes` over ducking.
 
-After applying music automation, verify with `/preview/audio`, `/audio/meter`, or a short render around at least one narration gap. Inspect the waveform or run a silence check; the music bed should remain audible where narration is absent. For conservative workflows, segment the music bed with static volumes when you do not need smooth ramps.
+After applying music automation, inspect `/audio/analyze` `render_gain_envelope`, then verify with `/preview/audio`, `/audio/meter`, or a short render around at least one narration gap. Inspect the waveform or run a silence check; the music bed should remain audible where narration is absent.
 
 ### When to Use Track vs Clip
 
@@ -314,7 +314,7 @@ GET /preview?from={seconds}&to={seconds}&sequence_id=timeline_v2
 GET /preview/audio?from={seconds}&to={seconds}&sequence_id=timeline_v2
     — Audio-only preview render (.wav), no picture cost
 GET /audio/analyze?from={seconds}&to={seconds}&sequence_id=timeline_v2
-    — Approximate audio analysis (levels, ducking, mix balance), no render
+    — Render-envelope audio prediction (levels, ducking, mix balance), no media render
 GET /audio/meter?from={seconds}&to={seconds}&sequence_id=timeline_v2
     — Actual LUFS/LRA/true-peak metering (renders audio via MLT + ffmpeg ebur128)
 POST /render
@@ -408,11 +408,11 @@ Returns an approximate analysis of audio levels, ducking impact, and mix balance
 }
 ```
 
-This analysis is intentionally approximate — it uses source-asset loudness plus timeline gain settings. It is useful for mix iteration and debugging, not mastering-grade measurement.
+This analysis is a render-envelope prediction — it uses source-asset loudness plus the same frame/gain envelope path used by MLT render, and each segment includes `render_gain_envelope`. It is useful for mix iteration and debugging, not mastering-grade measurement.
 
 ### Audio Metering (Actual Loudness)
 
-`GET /audio/meter` renders audio-only through MLT and measures with `ffmpeg ebur128`. This is **actual** loudness metering, not the predictive approximation from `/audio/analyze`.
+`GET /audio/meter` renders audio-only through MLT and measures with `ffmpeg ebur128`. This is **actual** loudness metering, not the predictive source-loudness estimate from `/audio/analyze`.
 
 **Query params:** `sequence_id`, `from`, `to`, `tracks` (comma-separated IDs to solo), `format` (default: `lufs`).
 
@@ -433,13 +433,13 @@ This analysis is intentionally approximate — it uses source-asset loudness plu
 }
 ```
 
-Use `/audio/meter` when you need to verify the mix meets loudness spec (e.g. −14 LUFS for streaming, −24 LUFS for broadcast). Use `/audio/analyze` for quick approximate checks during iteration.
+Use `/audio/meter` when you need to verify the mix meets loudness spec (e.g. −14 LUFS for streaming, −24 LUFS for broadcast). Use `/audio/analyze` for quick render-envelope checks during iteration.
 
 **Error behavior:** `503` if MLT/render tooling is unavailable, `400` for invalid request windows or parameters, `404` if the referenced sequence does not exist.
 
 ### Escalation pattern
 
-1. `/audio/analyze` — instant approximate diagnostic (no render)
+1. `/audio/analyze` — instant render-envelope diagnostic (no media render)
 2. `/audio/meter` — actual LUFS/LRA/true-peak metering (audio render required)
 3. `/preview/audio` — ear-based review (audio render, listenable `.wav`)
 4. `/preview` — full picture+sound verification (video render)

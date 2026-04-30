@@ -1,6 +1,6 @@
 ---
 name: pr0ta-timeline
-description: "PR0TA post-production timeline — the primary editing surface for both AI agents and human collaborators. Covers clip CRUD, track creation, Ken Burns presets, audio mix and ducking, preview/render, snapshots, editorial primitives (marks, 3-point edits, trims, link groups), source shortfalls and fitToFill retiming, narration materialization, and timeline analysis (gaps, overlaps, reused media, source shortfalls). Read when adding clips, editing the timeline, setting Ken Burns, configuring audio, previewing, creating tracks, or doing any post-production assembly. This is where every production is assembled — if you are building a cut, read this."
+description: "PR0TA post-production timeline guide for clip/track editing, Ken Burns, audio mix, preview/render, snapshots, editorial primitives, source shortfalls, fitToFill, and frame-aware diagnostics. Read when assembling or editing a cut."
 ---
 
 # Post-Production Timeline
@@ -197,11 +197,11 @@ For fine-grained mix control beyond ducking, use `volumeKeyframes` — available
 
 **Clip-level** (`PATCH /timeline/clips/{clip_id}`) — keyframe times are relative to clip start. Use for source-specific moves: fade in a music clip, boost dialogue at the end.
 
-The renderer multiplies both: `final gain = track gain × clip gain`. Each keyframe has `time` (seconds), `value` (linear gain: `1.0` = unchanged, `0.5` ≈ −6 dB, `0.0` = silence; clamped 0–4), and optional `interpolation` (`linear` or `hold`). The backend also accepts `db`/`decibels` values (converted to linear). See `pr0ta-api` → `reference/timeline-api.md` → "Audio Level Keyframes" for the full field contract and compatibility aliases.
+The renderer multiplies both: `final gain = track gain × clip gain`. Each keyframe has `time` (seconds), `value` (linear gain: `1.0` = unchanged, `0.5` ≈ −6 dB, `0.0` = silence; clamped 0–4), and optional `interpolation` (`linear` or `hold`). The backend also accepts `db`/`decibels` values (converted to linear). `/audio/analyze` now returns each segment's `render_gain_envelope` using the same frame/gain path that MLT render uses; `/audio/meter` renders through MLT and meters the actual mix. See `pr0ta-api` → `reference/timeline-api.md` → "Audio Level Keyframes" for the full field contract and compatibility aliases.
 
 **Interaction with ducking:** Ducking generates clip-level `volumeKeyframes` on ducked clips. If both manual keyframes and ducking are present, PR0TA merges them. Use `audioMix.ducking` for automatic dialogue-aware ducking; use `volumeKeyframes` for intentional manual mix moves.
 
-**Post-render music check:** After any render with music automation, verify that music remains audible in narration gaps. Use `/audio/meter` or a rendered preview/audio export around at least one narration-quiet window, or run `ffmpeg silencedetect` on the rendered file. If the full mix is silent during a gap where music should be present, treat the render as failed even if `/audio/analyze` predicted music.
+**Post-render music check:** After any render with music automation, verify that music remains audible in narration gaps. Use `/audio/analyze` to inspect `render_gain_envelope`, `/audio/meter` to meter the same MLT path, or a rendered preview/audio export around at least one narration-quiet window. If the full mix is silent during a gap where music should be present, treat the render as failed and file the render task ID with the gain-envelope payload.
 
 ### Transitions
 
@@ -221,7 +221,7 @@ Adjacent same-track dissolves and crossfades are synthesized as outgoing-tail ov
 |----------|---------|
 | `GET /preview?from={s}&to={s}&sequence_id=timeline_v2` | Video+audio preview (defaults to full sequence resolution) |
 | `GET /preview/audio?from={s}&to={s}&sequence_id=timeline_v2` | Audio-only preview (`.wav`) — fast, no picture render |
-| `GET /audio/analyze?from={s}&to={s}&sequence_id=timeline_v2` | Approximate audio analysis — levels, ducking impact, mix balance (no render) |
+| `GET /audio/analyze?from={s}&to={s}&sequence_id=timeline_v2` | Render-envelope audio prediction — levels, ducking impact, mix balance, `render_gain_envelope` (no media render) |
 | `GET /audio/meter?from={s}&to={s}&sequence_id=timeline_v2` | Actual LUFS/LRA/true-peak metering (renders audio via MLT + ebur128) |
 | `POST /render` | Preview render — loads saved timeline automatically (control-only body is valid) |
 | `POST /export` | Final export — master delivery render |
@@ -234,7 +234,7 @@ Adjacent same-track dissolves and crossfades are synthesized as outgoing-tail ov
 **Final export:** `POST /export` is the final-export route for master delivery renders. Use `POST /render` during editorial iteration; use `POST /export` when the cut is locked and ready for delivery.
 
 **Escalation pattern — cheapest check first:**
-1. **`/audio/analyze`** — instant approximate diagnostic. Use to check: is narration much louder than music? Did ducking attenuate a track? Is a segment effectively silent? Returns per-track `source_mean_db`, `predicted_mean_db`, `predicted_peak_db`, ducking flags, and an overall mix summary.
+1. **`/audio/analyze`** — instant render-envelope diagnostic. Use to check: is narration much louder than music? Did ducking attenuate a track? Is a segment effectively silent? Returns per-track `source_mean_db`, `predicted_mean_db`, `predicted_peak_db`, `render_gain_envelope`, ducking flags, and an overall mix summary.
 2. **`/audio/meter`** — actual loudness metering. Renders audio through MLT and measures with `ffmpeg ebur128`. Returns `integrated_lufs`, `range_lu`, `true_peak_dbfs`, and a `short_term_lufs_timeline`. Use when verifying the mix meets loudness spec (e.g. −14 LUFS for streaming).
 3. **`/preview/audio`** — ear-based review. Renders a `.wav` preview. Use `tracks=dialogue,music` to solo specific tracks. Use when you need to actually hear the mix.
 4. **`/preview`** — full picture+sound verification. Use only when you need to see visuals alongside audio.
@@ -359,7 +359,7 @@ Set ducking rules (array), narration offset, and per-clip volume via `POST /time
 
 ### 5. Check the Mix
 Use the escalation pattern — cheapest check first:
-1. `GET /audio/analyze` — quick approximate level/balance diagnostic
+1. `GET /audio/analyze` — quick render-envelope level/balance diagnostic
 2. `GET /audio/meter` — actual LUFS/LRA/true-peak if you need loudness spec compliance
 3. `GET /preview/audio` — listen to the audio mix without rendering video
 4. `GET /preview` — full picture+sound only when needed (omit `quality` for full-res, `quality=low` for fast)

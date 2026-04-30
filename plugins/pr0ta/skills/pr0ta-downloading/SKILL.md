@@ -1,6 +1,6 @@
 ---
 name: pr0ta-downloading
-description: "PR0TA asset downloading and export — the definitive reference for reliably downloading generated images, videos, and audio from PR0TA projects. Covers the curl-via-subprocess pattern (required — Python urllib gets 403'd by Cloudflare), storage_uri authenticated fallback for video files, 0-byte detection, bulk export loops, signed download URLs, and asset provenance tracking via assets.json and generation_context. Read whenever you need to download or save any PR0TA asset, export clips, troubleshoot download failures, or track which prompt produced which file."
+description: "PR0TA asset download/export guide. Read when downloading generated images, videos, or audio; handling signed URLs/storage_uri fallback; detecting 0-byte files; bulk exporting; or tracking asset provenance."
 ---
 
 # Downloading & Exporting Assets Reference

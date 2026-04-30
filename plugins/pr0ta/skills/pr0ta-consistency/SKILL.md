@@ -1,6 +1,6 @@
 ---
 name: pr0ta-consistency
-description: "PR0TA visual consistency — character consistency bundles (one-call read of references + Kling Elements + Seedance tokens + provider payloads), Kling Elements (bundles, Refs slider, multi-prompt binding), Seedance Characters (two training paths, persistent tokens), the professional reference pipeline, multi-modal references, camera control, and image-edit correction. Read BEFORE any multi-shot production, and whenever you need character continuity, consistent faces/locations/props across shots, or any production where the same subject appears in more than one generated image or video. Also read when creating Element bundles, Character profiles, reading consistency bundles, or choosing between Kling and Seedance consistency systems."
+description: "PR0TA visual consistency for recurring characters, locations, props, and multi-shot continuity. Read when creating or using Kling Elements, Seedance Characters, consistency bundles, reference pipelines, or repeat-subject generation."
 ---
 
 # Visual Consistency & Continuity Reference

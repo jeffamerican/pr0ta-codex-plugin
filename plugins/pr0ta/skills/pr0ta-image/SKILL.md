@@ -1,6 +1,6 @@
 ---
 name: pr0ta-image
-description: "PR0TA image generation — Nano Banana 2 (default for speed and cost), GPT Image 2 (for challenging prompt adherence and character consistency edits), image editing modes (img_to_img, ref_to_img, edit_img), fan-out recipe for hard shots, resolution constraints, and model-specific parameter guidance. Read when generating any image, creating key frames for video animation, editing existing images, generating title cards or flash cards, creating stills for Ken Burns, producing character reference sheets, or choosing between image models. Also read when uploading existing images as references or when a text-heavy still needs the Line-Locked Poster pattern from pr0ta-prompting."
+description: "PR0TA image generation and editing for key frames, references, posters/title cards, stills, and character sheets. Read when generating, editing, uploading, or choosing image models."
 ---
 
 # Image Generator Reference
@@ -19,7 +19,7 @@ description: "PR0TA image generation — Nano Banana 2 (default for speed and co
 API model strings for GPT Image 2: **`"openai/gpt-image-2"`** for text-to-image, **`"openai/gpt-image-2/edit"`** for image editing. These are Fal queue endpoint IDs. (This is *GPT Image 2*, not the legacy GPT-2 text LM.)
 
 **Fall back to other models when:**
-- You need uncensored content that Nano Banana 2 or GPT Image 2 rejects → Flux 2 PRO / Flux 2 MAX (excellent for permissive work), GPT Image 1.5 (also flagged UNCENSORED)
+- An otherwise allowed image prompt is falsely rejected by Nano Banana 2 or GPT Image 2 → preserve the provider error, then try Flux 2 PRO / Flux 2 MAX, GPT Image 1.5, or another model listed for the needed mode
 - You need specialized reasoning-based image generation → GLM Image
 - Budget is extremely tight → Kling Image V3/O3 (2.94 credits)
 
@@ -91,15 +91,15 @@ Generate images from text prompts.
 
 **Default model: Nano Banana 2** (8.40 credits/image, HQ, FAST, PRECISE, ACCURATE) — fast, cost-effective, excellent dimension control. Escalate to GPT Image 2 for challenging prompt adherence or character consistency edits.
 
-**Key parameters:** prompt, ratio (auto, 1:1, 16:9, 9:16, 4:3, 3:4, 3:2, 2:3, etc.), resolution (1K, 2K, 4K), seed (optional, for reproducibility), number of images (default: 1), format (jpeg, png, webp), tolerance (1-6 range, default 4; some models cap at 5 -- controls prompt adherence and content-safety filtering). **Raise tolerance to the model's max (6 where available, 5 otherwise) if a legitimate creative prompt is being soft-blocked or rewritten.** If max tolerance still rejects, fall back to a less-restrictive image model: **Flux 2 PRO** and **Flux 2 MAX** are excellent for uncensored work; GPT Image 1.5 is also flagged UNCENSORED in the model list; Grok Imagine and LTX-family image modes are additional permissive options. See `pr0ta-video` → "Content-Restriction Fallback Ladder" for the same pattern on the video side.
+**Key parameters:** prompt, ratio (auto, 1:1, 16:9, 9:16, 4:3, 3:4, 3:2, 2:3, etc.), resolution (1K, 2K, 4K), seed (optional, for reproducibility), number of images (default: 1), format (jpeg, png, webp), tolerance (1-6 range, default 4; some models cap at 5 -- controls prompt adherence and content-safety filtering). Use tolerance only for allowed content and preserve the provider error when a false-positive rejection occurs. If a policy-compliant tolerance retry still rejects, switch to a different image model that supports the needed mode; query the live model list rather than relying on stale labels. See `pr0ta-video` → "Provider False-Positive Fallback Ladder" for the same pattern on the video side.
 
 **Available Txt-to-Img models:**
 - **Nano Banana 2** (8.40 credits/image) -- HQ, FAST, PRECISE, ACCURATE -- **recommended default** — best speed, cost, and dimension control
 - OpenAI GPT Image 2 (varies) -- HQ -- escalate for challenging prompt adherence or character consistency edits
 - Qwen Image 2 Pro (Text-to-Image) (7.88 credits/image)
 - GPT Image 1.5 (varies) -- HQ, CHEAP, UNCENSORED
-- FLUX.2 Pro -- HQ, UNCENSORED (excellent for permissive creative work)
-- FLUX.2 Max (7.35 credits/megapixel) -- HQ, UNCENSORED (excellent for permissive creative work)
+- FLUX.2 Pro -- HQ fallback for allowed prompts that other providers false-positive reject
+- FLUX.2 Max (7.35 credits/megapixel) -- HQ fallback for allowed prompts that other providers false-positive reject
 - ByteDance SeeDream v4.5 (4.20 credits/image) -- HQ
 - GLM Image (5.25 credits/megapixel) -- HQ, REASONING
 - Kling Image V3 (Text-to-Image) (2.94 credits/image) -- NEW

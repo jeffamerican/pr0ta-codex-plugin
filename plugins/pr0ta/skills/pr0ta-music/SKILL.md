@@ -1,6 +1,6 @@
 ---
 name: pr0ta-music
-description: "PR0TA music and sound effect generation via ElevenLabs Music — background scores, soundtracks, ambient beds, point SFX, and foley. Covers TOS-compliant prompt writing (no artist names), the composition workspace for structured multi-section scores, output format selection, and music analysis for beat-keyed editing. Read when generating background music, scoring a video, creating sound effects or foley, composing audio for any production, or writing music prompts. Also read when you need to understand music-specific API parameters or TOS restrictions that cause prompt rejections."
+description: "PR0TA music and SFX generation for scores, ambient beds, point effects, foley, music prompts, composition workspace, and beat analysis. Read when scoring or generating non-speech audio."
 ---
 
 # Music Generator Reference

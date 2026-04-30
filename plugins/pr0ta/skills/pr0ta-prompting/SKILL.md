@@ -1,6 +1,6 @@
 ---
 name: pr0ta-prompting
-description: "PR0TA prompting guide — self-contained prompts, prompt bible, six named field-tested techniques, model-specific guidance for GPT Image 2/Kling/Seedance/Nano Banana, and anti-patterns. Read BEFORE writing any visual generation prompt — image or video. Essential for avoiding failures like negation in prose (video models silently drop 'don't'/'no'), vague composition, assumed context between shots, and camera confusion. Also covers the Line-Locked Poster pattern for title cards, the prompt-the-BEFORE-moment rule for i2v key frames, and the prompt bible pattern for multi-shot consistency."
+description: "PR0TA visual prompting guide for image/video prompts, prompt bibles, model-specific techniques, anti-patterns, title cards, i2v key frames, and multi-shot consistency. Read before writing generation prompts."
 ---
 
 # Prompting Guide for PR0TA Productions

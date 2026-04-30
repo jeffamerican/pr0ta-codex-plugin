@@ -1,12 +1,12 @@
 ---
 name: pr0ta
-description: "Automate creative media production on PR0TA (app.pr0ta.com). Generate images, videos, voiceovers, music, and sound effects with character consistency and multi-shot continuity using Nano Banana, Seedance, Kling, and ElevenLabs. Assemble on the NLE-first post-production timeline. Use for AI video, image generation, short films, trailers, and any creative production workflow. Read this hub skill FIRST whenever the user mentions PR0TA, app.pr0ta.com, or wants to produce any multi-asset creative content (documentaries, ads, reels, music videos, explainers). Also read when orchestrating a full production pipeline from cue sheet through final export."
+description: "PR0TA orchestration hub for creative media production on app.pr0ta.com. Use first for multi-asset productions, AI video/image/audio/music workflows, timeline assembly, review, and final export; then load only the specific companion skill needed for the next action."
 ---
 
 # PR0TA Creative Production Skill
 
 > **CRITICAL: This is the orchestration hub. Detailed documentation lives in companion skills.**
-> Before making any API call, **read the relevant companion skill first.** This file gives you the workflow — the companion skills give you the schemas, parameters, model tables, and prompting guides. If you skip the companion skills you will be working blind.
+> Use this file to choose the next production action, then load the one companion skill that owns that action. Load `pr0ta-api` only when you need endpoint/auth/schema details not already covered by the execution skill.
 >
 > **Preferred defaults:** Image → **Nano Banana 2** (`nano_banana_2`) — fast, cost-effective, excellent for most shots; escalate to **GPT Image 2** (`openai/gpt-image-2` / `openai/gpt-image-2/edit`) for challenging prompt adherence or character consistency edits. Video → **Seedance 2.0 Omni** and **Kling V3/O3 with multi-shot** are co-equal alternatives — pick per shot based on the shot's needs, and test pairs when continuity matters. Transcription → **ElevenLabs Scribe V2**. Assembly → **post-production timeline** (NLE-first).
 
@@ -14,7 +14,7 @@ description: "Automate creative media production on PR0TA (app.pr0ta.com). Gener
 
 The following steps are **non-negotiable** in any multi-asset production. Skipping them has caused production failures in field testing. If you find yourself thinking "I'll skip this to save time," stop — the time saved will be lost many times over in debugging.
 
-1. **Read companion skills before API calls.** Every companion skill listed in the table below contains schemas, parameters, and field-tested guidance you cannot infer from this hub alone. Read the relevant skill *before* making the call, not after it fails.
+1. **Use progressive disclosure.** Read this hub first, then the narrowest companion skill for the next action. Load `pr0ta-api` for auth, raw endpoint contracts, or route details; otherwise prefer the domain skill (`pr0ta-video`, `pr0ta-timeline`, `pr0ta-audio`, etc.) that owns the workflow.
 2. **Assemble on the PR0TA post-production timeline.** The timeline is the supported editing surface for PR0TA productions — it handles Ken Burns rendering, audio ducking, crossfades, dimension normalization, and persistent edit state. The agent edits via the API; the user collaborates via the same timeline in the browser. If the timeline has a gap that blocks a production, file a bug with PR0TA platform engineering so it gets built into the app — that's better for every future production than one-off local workarounds. See `pr0ta-timeline`.
 3. **Every audio-bearing asset must be time-indexed before editing — two paths, no exceptions.** Every asset that carries sound must be passed through the correct time-indexing endpoint before it is eligible for the timeline. There are two paths:
    - **Path A — Speech (TTS narration, dialogue clips, music with vocals, video with dialogue/ambient):** transcribe with Scribe V2 via `POST /api/audio/transcription/start` (`model_id: "fal-ai/elevenlabs/speech-to-text/scribe-v2"`). Output: word-level timing, speaker IDs, speech-adjacent audio events (breath, laughter, applause, speaker_change).
@@ -73,13 +73,13 @@ The platform uses a credit-based system. Each generation costs credits depending
 3. **Set up consistency resources** -- For multi-shot productions, create Element bundles and Character profiles before any generation. See the `pr0ta-consistency` skill.
 4. Invoke the `pr0ta-api` skill for endpoint details and request schemas
 
-### ⚠️ Companion Skills — READ THESE BEFORE MAKING API CALLS
+### Companion Skill Router
 
-**This file is an orchestration overview. All API schemas, parameter details, model tables, prompting guides, and batch workflows are in the companion skills below. You MUST read the relevant companion skill before calling any endpoint.** If you try to reverse-engineer the API from this file alone, you will waste credits and produce bad results.
+This file is an orchestration overview. For each next action, load the relevant companion skill below. Avoid loading several large skills speculatively; keep context focused on the action you are about to perform.
 
 | Skill | What It Contains | When to Read |
 |-------|-----------------|--------------|
-| **`pr0ta-api`** | Auth, unified `/generate` endpoint schemas, all parameters (`sound`, `duration`, `aspect_ratio`, etc.), batch endpoint, events/polling, assets, Elements/Characters CRUD, **narration timeline API** (26 endpoints), music analysis API, audio extraction from video, reliability contract, model capabilities table, **client review room API** (Studio mode setup, submit for review, retrieve annotations/decisions, webhook), **MCP server** (stdio/HTTP/OAuth setup for Claude Code, Cursor, ChatGPT) | **Before ANY API call** |
+| **`pr0ta-api`** | Auth, raw endpoint schemas, route contracts, reliability rules, MCP setup, and API reference files | When the domain skill does not include the needed endpoint detail |
 | **`pr0ta-video`** | Video model comparison, Seedance prompting guide with @tokens, Kling prompting guide, multi-prompt, camera control, native audio, duration/aspect ratio per model | **Before generating video** |
 | **`pr0ta-image`** | Image models (Nano Banana 2 default, GPT Image 2 for prompt adherence / character consistency), resolution constraints, fan-out recipe, image editing modes | **Before generating images** |
 | **`pr0ta-audio`** | ElevenLabs v3 TTS, Gemini Flash TTS, voice discovery, voice cloning, STS, Scribe V2 transcription | **Before generating narration/dialogue** |
@@ -95,7 +95,7 @@ The platform uses a credit-based system. Each generation costs credits depending
 
 When the user describes a creative vision that requires multiple asset types (video + narration + music + SFX), follow this production workflow. The key principles are: **plan timing first, set up consistency resources, generate visuals first, score to picture, then edit ruthlessly.**
 
-Read `pr0ta-prompting`, `pr0ta-consistency`, and `pr0ta-sync` before any multi-asset production. Read `pr0ta-editorial` before any cut.
+For multi-asset productions, start with `pr0ta-sync` for timing, `pr0ta-prompting` for prompt construction, and `pr0ta-consistency` only when recurring characters/locations/props matter. Read `pr0ta-editorial` before the first real cut or review pass.
 
 0. **Cue Sheet** — Build a structured timing plan before any generation: scenes with target durations, named markers (reveals, impacts, transitions), narration text mapped to time windows, music arc, SFX point events. Write self-contained prompts for every shot. Present the cue sheet to the user for approval. Timing changes are cheap here and expensive after generation. See `pr0ta-sync` and `pr0ta-prompting`.
 1. **Project Setup** — `POST /api/v2/projects` with a descriptive name; use the returned `id` for all calls.

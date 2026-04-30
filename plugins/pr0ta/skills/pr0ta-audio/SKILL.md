@@ -1,6 +1,6 @@
 ---
 name: pr0ta-audio
-description: "PR0TA audio generation and transcription — ElevenLabs v3 TTS with audio tags and emotion control, voice cloning (instant and professional), prompt-based voice design, speech-to-speech (STS) voice conversion, voice discovery API, Gemini Flash TTS, and mandatory audio-to-text time-indexing (Scribe V2 for speech, music/analyze for instrumentals). Read when generating speech or narration, cloning a voice, designing a voice from a text description, converting a performance to a different voice, transcribing audio, or time-indexing any audio-bearing asset before it enters the timeline."
+description: "PR0TA audio workflows for TTS, voice cloning/design, speech-to-speech, transcription, and mandatory time-indexing before timeline editing. Read when generating or analyzing narration, dialogue, voice, or any speech-bearing asset."
 ---
 
 # Audio Generator Reference

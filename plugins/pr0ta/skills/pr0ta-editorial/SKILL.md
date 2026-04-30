@@ -1,6 +1,6 @@
 ---
 name: pr0ta-editorial
-description: "PR0TA editorial discipline — ruthless cutting, story-first pacing, the five-pass rewrite loop, seven ship criteria, mark-driven editing, mandatory render verification protocol (audio scan, frame audit, end-frame check), asset curation (tagging hero takes, rejecting bad assets), and an uncompromising quality bar. Read whenever editing, cutting, pacing, tightening, reviewing, deciding whether a cut is ready to ship, applying editorial primitives (marks, edits, trims, link groups), or curating assets. Also read before any final export to verify the cut meets the ship gate. If you are about to call a production 'done', read this first."
+description: "PR0TA editorial discipline for cutting, pacing, asset curation, review, ship criteria, and render verification. Read before edit passes, client review fixes, final export, or calling a cut done."
 ---
 
 # Editorial Discipline for PR0TA Productions
@@ -155,7 +155,7 @@ The **only** exception is a deliberate editorial statement — a recurring visua
 
 **PR0TA enforces this editorially.** When a source clip is shorter than the requested program range, PR0TA inserts only the available media and leaves a real gap — it does not freeze-pad or silently stretch. The edit response includes a `source_shortfall` warning. If `/timeline/analysis` reports `sourceShortfallCount > 0` before render, surface the affected clips and decide: generate a longer take, generate a companion shot, or — only for deliberate cinematic slow-motion on B-roll — use `fitToFill: true` to retime. Never use `fitToFill` to silently paper over a too-short clip.
 
-**Short gaps can be absorbed by the timeline itself.** When a clip is 0.5–1.0 seconds shorter than its beat window, the post-production timeline's preview/render pipeline can extend the clip's displayed duration slightly (holding the last frame, or letting the Ken Burns motion settle) without changing playback speed. This is not time-stretching — the viewer sees a brief hold, not rubbery motion. When the gap exceeds ~1.0s, stop absorbing and generate a longer clip or a companion shot. Never let a tiny sub-second trim become an excuse to regenerate every adjacent cut.
+**No automatic last-frame holds.** When a clip is even one frame shorter than its program window, treat that as a real source-tail gap. PR0TA's render diagnostics report frame-native `timelineMediaGaps`, `renderedPixelGaps`, and `transparentOutputFrames`; use those frame ranges to patch the edit. The repair options are: trim the outgoing clip to its actual covered frames, pull the incoming clip earlier on a frame boundary, use `fitToFill` only when the retime is an intentional visible choice, generate a longer/extended take, or add a deliberate companion shot. Never hold the last frame to the render boundary and never let the timeline hide missing source media.
 
 **No filler shots.** If a shot is in the cut because it was generated and you don't want to waste it, cut it. If a shot is in the cut because you couldn't think of anything else to put there, cut it and think harder. If a shot is in the cut because the rhythm needs something and this was the closest thing — cut it, generate what the rhythm actually needs, use that instead. Filler is the single most common reason a cut feels assembled instead of edited.
 

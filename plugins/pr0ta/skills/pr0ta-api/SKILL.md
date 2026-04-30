@@ -1,6 +1,6 @@
 ---
 name: pr0ta-api
-description: "PR0TA API reference — authentication (PAT tokens), the unified /generate endpoint, task polling, error handling, image upload, asset management and tagging, model discovery (model_defaults, model_pricing), Elements/Characters CRUD, character consistency bundles, the narration timeline API (transcript-anchored editing, alignment verification, materialize-to-post-production), editorial primitives API (marks, edits, trims, link groups), timeline analysis, client review room API, MCP server setup, and the Python client template. Read when making any PR0TA API call, debugging generation failures, handling task errors, uploading images, tagging assets, reading consistency bundles, setting up authentication, discovering model parameters, working with the narration or post-production timeline, analyzing timeline health, submitting assets for client review, or connecting external tools via MCP."
+description: "PR0TA REST API reference for auth, raw endpoint schemas, task polling, assets, model discovery, timeline/debug APIs, review-room APIs, and MCP setup. Read when a domain skill does not include the exact route contract or when debugging API failures."
 ---
 
 # PR0TA API Reference
@@ -254,8 +254,8 @@ Essential facts:
 - **Track creation** — `POST /timeline/tracks` creates individual tracks without rewriting the full `tracks[]` array. Preferred over `PATCH /timeline` for adding tracks.
 - **Track targeting** — tracks support three selector forms: raw ID (`dialogue`), NLE alias (`A1`), or unique label (`Dialogue`). `PATCH /timeline/tracks/{id_or_alias}` renames, locks, or repositions tracks. Read `GET /timeline/tracks` first and use raw IDs in persisted scripts.
 - **`duckedGain` is the canonical ducking field** (fraction of nominal volume: `1.0` = no duck, `0.0` = mute). `threshold` is a deprecated alias.
-- **Audio level keyframes** — `volumeKeyframes` on tracks (absolute time) and clips (clip-relative time) for fine-grained mix automation. The renderer multiplies both. Supports `db`/`decibels` input, and negative gain-like values are treated as dB attenuation. After automation, verify music with `/preview/audio`, `/audio/meter`, or a short render around a narration gap. See `reference/timeline-api.md` → "Audio Level Keyframes".
-- **Audio analysis** — `GET /audio/analyze` returns approximate levels, ducking impact, and mix balance instantly (no render).
+- **Audio level keyframes** — `volumeKeyframes` on tracks (absolute time) and clips (clip-relative time) for fine-grained mix automation. The renderer multiplies both. Supports `db`/`decibels` input, and negative gain-like values are treated as dB attenuation. `/audio/analyze` exposes the same frame/gain envelope that render uses; verify music with `/preview/audio`, `/audio/meter`, or a short render around a narration gap. See `reference/timeline-api.md` → "Audio Level Keyframes".
+- **Audio analysis** — `GET /audio/analyze` returns render-envelope prediction, ducking impact, mix balance, and per-segment `render_gain_envelope` instantly (no media render).
 - **Audio metering** — `GET /audio/meter` returns actual LUFS/LRA/true-peak via MLT + ffmpeg ebur128. Use for loudness spec compliance.
 - **Audio-only preview** — `GET /preview/audio` renders a `.wav` without picture cost. Supports `tracks` param to solo specific tracks.
 - **Preview defaults to full sequence resolution.** Send `quality=low` for lightweight previews; omit for pixel-accurate.

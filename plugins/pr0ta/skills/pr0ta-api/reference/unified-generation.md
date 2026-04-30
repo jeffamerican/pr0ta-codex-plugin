@@ -79,7 +79,7 @@ Optional fields: `model`, `width`, `height`, `image_size`, `num_images`, `format
 | Model | Generator | Duration | Aspect Ratios | Key Features | Quirks |
 |-------|-----------|----------|---------------|-------------|--------|
 | Nano Banana 2 | image | n/a | All ratios, up to 4K | Fast, precise, thinking level | `portrait_4_3` returns landscape |
-| GPT Image 1.5 | image | n/a | 1024x1024 only | Cheap, uncensored | Ignores `image_size` parameter |
+| GPT Image 1.5 | image | n/a | 1024x1024 only | Cheap, useful false-positive fallback for allowed prompts | Ignores `image_size` parameter |
 | Kling O3 Pro | video | 3–15s | `16:9`, `9:16`, `1:1` (ref-to-video variant) | Multi-prompt (6 cuts), elements, voice, sound | Often outputs 1440×1440 square |
 | Kling V3 Pro | video | 3–15s | `16:9`, `9:16`, `1:1` | Multi-shot (5 shots), camera control, sound | Camera control API parameter |
 | Seedance 2.0 Omni | video | Integer; provider-defined | `21:9`, `16:9`, `4:3`, `1:1`, `3:4`, `9:16` | Character ID (frontal+sheet), quad-modal (9img/3vid/3aud), sound | Landscape refs OK for portrait. @image/@video/@audio tokens. |

@@ -1,6 +1,6 @@
 ---
 name: pr0ta-video
-description: "PR0TA video generation — Seedance 2.0 Omni and Kling V3/O3 with multi-shot as co-equal defaults. Covers the per-shot model decision framework, reference-to-video, multi-shot continuity (5-6 cuts per generation), video extension via chaining, camera control, voice control, Element bundles, character ID locking, Lyra 2 Zoom for i2v, content-restriction fallback ladder, duration/aspect constraints per model, and on-screen text rules. Read when generating any video, animating a still image, extending a clip, choosing between Seedance and Kling, or troubleshooting content rejections."
+description: "PR0TA video generation guide for Seedance, Kling, references, multi-shot continuity, video extension, camera/voice control, Elements/Characters, duration limits, and provider fallback. Read when generating, extending, or troubleshooting video."
 ---
 
 # Video Generator Reference
@@ -46,28 +46,28 @@ For any shot where consistency, continuity, or precise intent matter, **generate
 - **Need a zoom/push into a still image →** Lyra 2 Zoom (`fal-ai/lyra-2/zoom`, `mode: ref_to_vid`). Always requires a source image + text prompt. Check `model_defaults` for zoom_direction, resolution, and other params.
 - **Have a start image, need a single continuous shot →** Either works. Test both.
 - **You already know exactly what the shot looks like →** Kling. Its prompt adherence for precise cinematography is excellent.
-- **Seedance or Kling rejected a shot on content policy →** fall back to a less-restrictive model (see below).
+- **Seedance or Kling rejected an allowed shot on provider safety →** treat it as a provider false positive and use the fallback ladder below without hiding the original error.
 
-### Content-Restriction Fallback Ladder
+### Provider False-Positive Fallback Ladder
 
-Seedance and Kling share (or overlap in) a strict content classifier. When a legitimate creative shot — classical / Biblical art, violence that tells the story, edgy character design, brand-sensitive source material — gets bounced by either, fall back to models that run a looser classifier rather than burning more regenerations on the prompt.
+Seedance and Kling share (or overlap in) a strict content classifier. When an otherwise allowed creative shot — classical / Biblical art, story-relevant non-graphic violence, edgy character design, brand-sensitive source material — gets bounced by either, preserve the provider error and move through the fallback ladder. This is for false positives only. Do not use this ladder to bypass PR0TA policy, provider policy, legal constraints, or the user's safety requirements.
 
-**Fallback models, in order of preference for permissive generation:**
+**Fallback models, in order of preference for allowed-content recovery:**
 
-- **Grok Imagine** — least restrictive of the mainstream options; first fallback when Seedance/Kling reject on nudity, violence, or "risk control."
-- **LTX 2.3** — open-weights lineage, significantly more permissive than Seedance/Kling. Also the right choice for truly text-only video (no references).
-- **WAN 2.7 / 2.6 / 2.5** — the WAN family is relatively uncensored across the 2.5–2.7 range. If 2.7 is unavailable, step down to 2.6, then 2.5 — all three are acceptable fallbacks for the same shot.
+- **Grok Imagine** — first fallback when Seedance/Kling incorrectly reject an otherwise allowed shot on nudity, violence, or "risk control."
+- **LTX 2.3** — open-weights lineage and also the right choice for truly text-only video with no references.
+- **WAN 2.7 / 2.6 / 2.5** — useful when the shot is allowed but other providers keep false-positive rejecting it. If 2.7 is unavailable, step down to 2.6, then 2.5.
 
-**Maximize the per-model tolerance setting.** For models that expose a content-safety / tolerance parameter (Nano Banana 2's `tolerance` field is the canonical example — typically 1-6, sometimes capped at 5; video-side equivalents appear as `safety_level`, `content_filter`, or provider-specific flags), set it to the model's actual max (check the dropdown — **6 where available, 5 otherwise**) before giving up on the shot. A rejected generation at default tolerance often passes cleanly at max tolerance.
+**Use tolerance settings only for allowed content.** For models that expose a content-safety / tolerance parameter (Nano Banana 2's `tolerance` field is the canonical example; video-side equivalents appear as `safety_level`, `content_filter`, or provider-specific flags), use the highest allowed value that still complies with PR0TA/provider policy and the user's brief. Do not describe this as bypassing safety; describe it as recovering from a false-positive provider classification.
 
 **Workflow when a shot gets rejected:**
 
 1. Confirm the rejection is content-policy (not prompt-structure or invalid-parameter) by reading the task's terminal error. Seedance returns *"sensitive content"*; Kling returns *"Failure to pass the risk control system."*
-2. Bump tolerance on the current model to max and retry once. If it passes, ship and move on.
-3. If it still rejects, switch to the fallback ladder above — Grok Imagine first, then LTX 2.3, then WAN 2.7/2.6/2.5 — at max tolerance on each.
-4. Only fall back to client-side prompt rewrites (modesty substitution, softening descriptors) after the permissive models also reject. Rewriting the shot is lossy; switching models is not.
+2. If the content is allowed, adjust the current model's tolerance within policy and retry once. If it passes, ship and move on.
+3. If it still rejects, switch to the fallback ladder above — Grok Imagine first, then LTX 2.3, then WAN 2.7/2.6/2.5 — with policy-compliant tolerance on each.
+4. Only fall back to client-side prompt rewrites (modesty substitution, softening descriptors) after the alternate providers also reject. Rewriting the shot is lossy; switching models is not.
 
-This is a classifier-variance issue, not a prompt-engineering issue — positive framing (Technique 4 in `pr0ta-prompting`) will not fix a content rejection. Route around it by switching models.
+For allowed content, this is usually classifier variance, not prompt engineering — positive framing (Technique 4 in `pr0ta-prompting`) will not fix a real provider safety rejection. Preserve the error and switch models when appropriate.
 
 ### Cross-Provider Pivot on Stall
 
@@ -166,11 +166,13 @@ In narration-first pipelines, narration beats can easily exceed the video model'
 
 1. **Split the beat at a natural cut point.** Find a clause boundary or pause in the narration transcript and split into two sub-beats, each within the model's duration limit. Generate two separate video clips and crossfade between them on the post-production timeline. This produces the most natural result.
 
-2. **Generate max duration + crossfade to Ken Burns still.** Generate 15s of AI video for the opening of the beat, then crossfade on the timeline to a Ken Burns motion on the source still image (or a companion still) for the remainder. The crossfade masks the transition from motion video to Ken Burns motion.
+2. **Extend the video source when the motion should continue.** Use PR0TA's video extension modality (`extend_video` / provider-specific extension mode exposed through the unified API) when the beat needs the same moving shot to continue beyond the first generated clip. Extension is the correct repair when the composition, camera move, or action should remain continuous. Inspect the extended asset's true duration before placing it on the timeline.
 
-3. **Ken Burns on the still as full fallback.** Use the AI-generated image with a Ken Burns preset on the post-production timeline for the entire beat duration. This always works regardless of duration but produces less dynamic results than AI video. Set the `kenBurns` clip property to `push_in`, `pull_back`, or `ken_burns_slow` — see `pr0ta-timeline` → "Ken Burns as a Clip Property".
+3. **Generate max duration + crossfade to a deliberate companion visual.** Generate 15s of AI video for the opening of the beat, then crossfade to a companion shot, insert, map, diagram, or still with Ken Burns motion for the remainder. This should read as an editorial cut, not a hidden source tail.
 
-4. **Kling multi-shot across the full beat.** If you're already planning multiple cuts within the beat, use a single Kling O3 multi-shot generation (up to 6 cuts, up to 15s total) instead of one long clip. You get multiple shots worth of coverage *and* the duration you need in a single call, with locked continuity.
+4. **Ken Burns on the still as full fallback.** Use the AI-generated image with a Ken Burns preset on the post-production timeline for the entire beat duration. This always works regardless of duration but produces less dynamic results than AI video. Set the `kenBurns` clip property to `push_in`, `pull_back`, or `ken_burns_slow` — see `pr0ta-timeline` → "Ken Burns as a Clip Property".
+
+5. **Kling multi-shot across the full beat.** If you're already planning multiple cuts within the beat, use a single Kling O3 multi-shot generation (up to 6 cuts, up to 15s total) instead of one long clip. You get multiple shots worth of coverage *and* the duration you need in a single call, with locked continuity.
 
 **Planning guidance:** When building the cut list for a narration-first production, check each segment duration against the target model's limit. If multiple segments exceed 15s, consider re-segmenting the narration at natural paragraph or clause boundaries to create shorter segments. This is cheaper than generating extra clips.
 
@@ -189,25 +191,17 @@ Animate a single image into video.
 ### 3. Img to Vid+ (Enhanced Image-to-Video)
 Enhanced image-to-video with more control.
 
-### 4. Ref to Vid (Reference-to-Video) -- **KLING O3 PRO**
+### 4. Ref to Vid (Reference-to-Video)
 Generate video using reference images for character/scene consistency. This is the primary tool for high-quality AI video with visual references.
 
-**Default model: Kling Video v3 Pro** (14.70 credits/second)
-
-**Recommended model: Kling Video O3 Pro (Reference-to-Video)** (14.70 credits/second)
+**Authoritative default:** Seedance 2.0 Omni and Kling V3/O3 are co-equal high-quality defaults. Pick from the decision tree at the top of this skill instead of assuming one global default.
 
 **Key parameters:** start image (opening frame reference), end image (optional), element references (characters, props), reference strength (0-140%+, default 140%), prompt (single or multi-prompt), duration (5s default, 10s, 15s), negative prompt, cfg (classifier-free guidance, default 0.5). **Keep all negations in the negative prompt — never in the main prompt body.** Video models silently drop `don't` / `no` / `does not` from prose prompts and render the forbidden action. See `pr0ta-prompting` → Technique 4 ("Frame Motion and State Positively, Never Negatively") for the rewrite pattern.
 
-**Available Ref-to-Vid models:**
-- Kling Video O3 Pro (Reference-to-Video) -- 14.70 credits/second -- **co-equal default: up to 6 camera cuts per generation**
-- Kling Video v3 Pro (Image-to-Video) -- 14.70 credits/second -- **co-equal default: up to 5 multi-shot cuts per generation**
-- ByteDance Lynx / Seedance 2.0 Omni (Image-to-Video) -- 63.00 credits/second -- **co-equal default: quad-modal, character ID locking**
-- Runway Gen-4.5 (References) -- 12.60 credits/second -- NEW
-- Veo 3.1 Reference-to-Video -- 42.00 credits/second
-- Vidu Q2 Pro (Reference-to-Video) -- 5.25 credits/second
-- Kling V3 (Image-to-Video) -- 7.35 credits/seconds -- NEW, NATIVE, HQ, MULTISHOT, CAMERA CONTROLS
-- Kling Omni O3 (Image-to-Video) -- NEW, NATIVE, HQ, MULTISHOT, REASONING
-- Kling Omni O1 (Image-to-Video) -- 10.50 credits/seconds -- NEW
+**Model catalog:** Do not rely on this skill for live pricing or availability. Query `GET /api/v2/models` and `GET /api/v2/model_defaults` before a production pass, then apply the decision tree here. Stable defaults:
+- **Kling O3/V3** — best for precise cinematography, multi-shot prompts, Elements, and camera control.
+- **Seedance 2.0 Omni** — best for character ID locking, quad-modal references, and fast continuity tests.
+- **LTX / WAN / Grok / Runway / Veo / Vidu** — use when the model list says they fit the needed mode, duration, reference behavior, cost, or provider fallback path.
 - Kling Video O1 (Reference-to-Video) -- 11.76 credits/second
 
 **API model strings for key models:**
