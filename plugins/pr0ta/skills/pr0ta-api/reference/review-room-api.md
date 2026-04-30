@@ -11,6 +11,7 @@ This workflow is exposed through **PR0TA agent/MCP tools** (`enable_studio_mode`
 When ingesting review annotations for a timeline edit, generate a shot replacement checklist before making changes. Each open timestamped note should be keyed by:
 
 - `timestamp` / `start_time_seconds`
+- `frame_index`, `frame_rate`, and `timecode`
 - nearby transcript phrase or word range, if transcript timing is available
 - existing timeline `clip_id`
 - existing `asset_id`
@@ -196,6 +197,9 @@ Field notes:
       "author_user_id": null,
       "start_time_seconds": 12.5,
       "end_time_seconds": null,
+      "frame_rate": 30,
+      "frame_index": 375,
+      "timecode": "00:00:12:15",
       "geometry": {
         "x": 0.5,
         "y": 0.25,

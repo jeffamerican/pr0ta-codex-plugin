@@ -121,7 +121,12 @@ GET /api/post-production/{project_name}/timeline/debug-report?sequence_id=timeli
 
 The debug report bundles track coverage, primary visual gaps, source-duration-vs-program-duration, retime state, audio asset presence, keyframe counts, and render-risk warnings in one response.
 
-Render and export results may also include `timelineMediaGaps[]` plus `renderWarnings[]` entries with `code: "timeline_media_gap"`. These are deterministic timeline/media-coverage failures: rendered frames where no visual media source covers the program interval. Treat them as visible failures. The detector works in rendered frames and ignores a one-frame sub-frame rounding tail, so normal editorial math does not become a false short trim. Do not use gray/checkerboard pixel heuristics as the source of truth; use pixel inspection only to adjudicate what the viewer saw after the timeline has already identified a no-media interval.
+Render and export results may include two complementary diagnostics:
+
+- `timelineMediaGaps[]` plus `renderWarnings[]` entries with `code: "timeline_media_gap"` — deterministic timeline/media-coverage failures: rendered frames where no visual media source covers the program interval. The detector works in rendered frames and ignores a one-frame sub-frame rounding tail, so normal editorial math does not become a false short trim.
+- `renderedPixelGaps[]` plus `renderWarnings[]` entries with `code: "rendered_pixel_gap"` — post-render frame probes around clip boundaries found transparent/checkerboard output. These entries include `start_frame`, `end_frame`, `start_timecode`, `end_timecode`, `duration_frames`, `clip_id`, `track_id`, confidence, and usually a thumbnail.
+
+Treat either diagnostic as a visible failure until adjudicated. Pixel inspection is the render-level truth for checkerboard output; timeline coverage explains deterministic no-media intervals.
 
 ---
 
@@ -153,7 +158,7 @@ When a clip exceeds available source media, the clip entry includes `sourceShort
 
 Use `/timeline/clips` when working clip-by-clip. Use `/timeline/analysis` for full preflight diagnostics.
 
-Clip reads/lists also expose retime state when known: `fitToFill`, `frameSafeFitToFill`, `speed`, `sourceDuration`, `programDuration`, `renderedProgramFrames`, `renderedProgramDuration`, `sourceInPoint`, `sourceOutPoint`, `sourceSpan`, `effectivePlaybackDuration`, and `retimeReason`.
+Clip reads/lists also expose retime and frame state when known: `fitToFill`, `frameSafeFitToFill`, `speed`, `sourceDuration`, `programDuration`, `renderedProgramFrames`, `renderedProgramDuration`, `startFrame`, `endFrame`, `endFrameInclusive`, `sourceInFrame`, `sourceOutFrame`, `sourceInPoint`, `sourceOutPoint`, `sourceSpan`, `effectivePlaybackDuration`, and `retimeReason`.
 
 ---
 
@@ -242,7 +247,9 @@ This maps 8 seconds of source into 4 seconds of timeline:
 
 #### Without `fitToFill`
 
-Edit requests remain strict 3-point edits: exactly three of `source.in`, `source.out`, `program.in`, and `program.out` must be supplied.
+Edit requests remain strict 3-point edits: exactly three of `source.in`, `source.out`, `program.in`, and `program.out` must be supplied. For frame-exact edits, use `source.inFrame`, `source.outFrame`, `program.inFrame`, and `program.outFrame` instead of floating-point seconds; they are resolved against the sequence frame rate.
+
+Safe render option: send `avoidTransparentFrames: true` (or `diagnostics.avoidTransparentFrames: true`) to fail the render/export if `renderedPixelGaps[]` are detected. This does not hold the last frame; it fails with precise frame diagnostics so the edit can be repaired.
 
 ---
 
@@ -254,8 +261,8 @@ Edit requests remain strict 3-point edits: exactly three of `source.in`, `source
 - **Do not rely on freeze frames as padding.** PR0TA does not freeze-pad. If a clip is too short and `fitToFill` is not set, the tail is a real gap.
 - **Do not hold the last frame to render end.** That is not an acceptable repair path. Trim, replace, retime, or generate/extend new media.
 - **Do not treat accepted `fitToFill` as final proof.** Check `/timeline/clips` or `/timeline/debug-report` for `fitToFill`, `speed`, `sourceSpan`, `programDuration`, and `effectivePlaybackDuration`, then render a preview.
-- **Verify no-media tails.** Black-frame scans and gray/checkerboard pixel heuristics are not enough. Inspect `timelineMediaGaps[]` / `renderWarnings[]` from render/export responses and sample frames only to confirm the user-visible result around the reported timestamp.
-- **Adjudicate render warnings.** For every `timeline_media_gap`, fetch a frame near `start`, attach the thumbnail or frame path in your notes, classify it as actual no-media/checkerboard, covered by another intended visual layer, or false alarm, then list the repair action.
+- **Verify frame ranges, not loose timestamps.** At 30fps, one frame is 0.033333s. Use `start_frame` / `end_frame` / timecode from `renderedPixelGaps[]` or `renderFrameCoverage`, not hand-rounded seconds.
+- **Adjudicate render warnings.** For every `timeline_media_gap` or `rendered_pixel_gap`, fetch or use the attached frame thumbnail, classify it as actual no-media/checkerboard, covered by another intended visual layer, or false alarm, then list the clip/timestamp repair action.
 
 ### User-Facing Copy Recommendations
 
