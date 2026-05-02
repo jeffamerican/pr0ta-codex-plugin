@@ -1,6 +1,8 @@
 ## Voice Listing API
 
-Discover available ElevenLabs voices before making TTS calls.
+Gemini Flash TTS (`fal-ai/gemini-3.1-flash-tts`) is PR0TA's default for new TTS calls. Use ElevenLabs v3 (`eleven_v3`) as the fallback when Gemini is unavailable, when a workflow requires a specific ElevenLabs `voice_id`, or when the user specifically wants ElevenLabs v3 tag behavior.
+
+Discover available ElevenLabs voices before making ElevenLabs fallback TTS calls.
 
 ### List Voices (Direct ElevenLabs V2 Endpoint)
 
@@ -10,7 +12,7 @@ GET https://api.elevenlabs.io/v2/voices
 
 Requires `xi-api-key` header. Supports filters: `search`, `voice_type`, `category`, `sort`, `sort_direction`, and pagination (`page_size` up to 100, `next_page_token`). Returns ElevenLabs voice profiles with IDs, names, labels, preview URLs, and metadata.
 
-**Usage:** Call this endpoint before TTS generation to let users browse and select voice IDs programmatically, rather than hardcoding voice IDs or requiring the browser Voice Design tab.
+**Usage:** Call this endpoint before ElevenLabs fallback TTS generation to let users browse and select voice IDs programmatically, rather than hardcoding voice IDs or requiring the browser Voice Design tab.
 
 **V3 compatibility — try-and-fallback.** Do not derive or expose a `supports_v3` boolean from this endpoint. Do not treat `high_quality_base_model_ids` or `verified_languages[].model_id` as hard gates for `eleven_v3`. Instead, attempt TTS with `eleven_v3` and fall back to `eleven_multilingual_v2` on failure. See `voice-v2.md` for the full response shape and contract.
 

@@ -254,7 +254,20 @@ See `pr0ta-api` → "Asset Tagging, Readability Filters, and Timeline Analysis" 
 
 When a client review round is active (see `pr0ta-api` → "Client Review Room API"), pull annotations via `get_review_annotations` and treat each `open` annotation as an editorial note. Annotations carry `start_time_seconds` and frame-normalized `geometry` — use these to locate the exact beat the reviewer is commenting on.
 
-Before editing, turn the annotations into a shot replacement checklist keyed by timestamp, nearby transcript phrase, existing timeline `clip_id`, existing `asset_id`, reviewer note, and proposed action. Apply feedback using the editorial primitives below (marks, trims, 3-point edits). Mark annotations `addressed` after fixing. Do not ship with `open` annotations unless the user has explicitly waived them.
+Before editing, turn the annotations into a shot replacement checklist keyed by timestamp, frame index/timecode when available, nearby transcript phrase, existing timeline `clip_id`, existing `asset_id`, reviewer note, and proposed action. Apply feedback using editorial primitives or a clean sequence rebuild. Mark annotations `addressed` after fixing. Do not ship with `open` annotations unless the user has explicitly waived them.
+
+### Review Revision Protocol
+
+For review-driven revisions, prefer boring reliability over clever patching.
+
+1. **Fetch review annotations.** Use `get_review_annotations` for authenticated project work, or the public route from a review link: `GET /api/public/workspace/review-rounds/{share_token}/annotations`.
+2. **Build the shot checklist.** For each note, record timestamp, frame/timecode, note body, transcript phrase, active clip ID, asset ID, source name, and action. Use `GET /timeline/clip-at?sequence_id=&time=` to map review timestamps to active clip/asset context.
+3. **Decide patch vs rebuild.** One isolated note can be a targeted trim/swap. After more than one structural revision, a moving one-frame warning, repeated audio artifacts, stale patch tracks, or confusing old edit history, create a new `sequence_id` and rebuild from known-good media.
+4. **Rebuild frame-native.** Use `startFrame`, `durationFrames`, `sourceInFrame`, and `sourceOutFrame`; do not decimal-patch old clips. Keep incoming beat frames locked and use outgoing overlap handles only when needed.
+5. **Replace narration cleanly.** Remove prior narration and patch tracks, add one regenerated narration asset, transcribe the final narration, and reflow cuts. Never overlay replacement narration unless the user explicitly asks.
+6. **Render for the audience.** Use low quality only for internal checks. Client review links use full-quality export/render. Avoid internal/admin words such as "review cut" on client-facing credits/title cards.
+7. **Verify before handoff.** Run ffprobe/dimension/duration checks, audio level checks, render diagnostics, review URL `200`, and confirm the review asset ID matches the intended export asset ID. For narration fixes, also verify by extracting/transcribing the final exported MP4 audio, not only by trusting the source narration asset.
+8. **Close the loop.** When the replacement review is created, mark old annotations addressed when possible and include metadata or a note linking to the replacement review round.
 
 ### Mark-Driven Editing
 
@@ -350,6 +363,7 @@ Walk away and restart the cut from a blank timeline when:
 - **You have been chasing the same pacing problem for more than two passes.** Two passes of pacing work should resolve most pacing issues. If you're on pass four and still fighting rhythm, the underlying structure is wrong. Blank timeline, start over.
 - **The cut contains more filler than spine material.** If more than 30% of the current cut is shots you're defending with "it fills the space," the cut is an assembly, not a story. Restart with the spine material first and generate new material into the gaps deliberately.
 - **You are bored watching your own cut.** This is the most honest signal available. If the piece bores the editor, it will bore the viewer. Bored editing means the spine is unclear or the pacing is flat or both. Diagnose which and restart from the top of the relevant pass.
+- **The timeline is contaminated by patch history.** If old narration clips, patch tracks, muted keyframes, stale overlays, duplicate semantic shot families, or moving one-frame warnings keep reappearing, stop patching. Create a fresh sequence and rebuild from the authoritative beat/cut list.
 
 **Restarting a cut is not a loss.** It is the single most common move in professional editing rooms. The shots you already generated are still available. Your time is not wasted — it was spent learning what the cut actually wants to be.
 

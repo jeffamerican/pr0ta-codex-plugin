@@ -5,7 +5,7 @@ description: "PR0TA post-production timeline guide for clip/track editing, Ken B
 
 # Post-Production Timeline
 
-> **This is the primary and only editing surface.** The post-production timeline is a persistent, shared editing state that both AI agents (via the API) and human collaborators (via the browser) work on together. The agent adds clips, sets Ken Burns presets, configures audio, and previews segments through the API. The user opens the same timeline in their browser, scrubs through, reorders, trims, and approves. Both operate on the same persistent state — no rebuild required.
+> **This is the primary and only editing surface.** The post-production timeline is a persistent, shared editing state that both AI agents (via the API) and human collaborators (via the browser) work on together. The agent adds clips, sets Ken Burns presets, configures audio, and previews segments through the API. The user opens the same timeline in their browser, scrubs through, reorders, trims, and approves. Both operate on PR0TA timeline sequences. For normal iteration, mutate the current sequence; after accumulated patch state, rebuild into a fresh `sequence_id` instead of fighting old artifacts.
 >
 > **Assemble on the PR0TA post-production timeline.** All clip assembly, Ken Burns, audio mix, preview, and render happens through the app's timeline API. If the timeline is missing a capability you need for a production, file a bug with PR0TA platform engineering so it gets built into the app — the goal is to keep the full production loop inside PR0TA rather than shipping parallel local build pipelines.
 >
@@ -75,16 +75,63 @@ PR0TA enforces NLE-standard track separation: **one track is one linear lane.** 
 | Endpoint | Purpose |
 |----------|---------|
 | `GET /timeline` | Returns the main sequence |
-| `POST /timeline` | Save/merge timeline-level fields — merges submitted keys into the existing timeline state (does not replace keys you omit) |
+| `POST /sequences` | Create a named sequence with optional dimensions, tracks, audio mix, and metadata |
+| `POST /timeline/fork` | Fork an existing sequence; optionally clear clips for a clean rebuild |
+| `POST /timeline?sequence_id={id}` | Create/replace a full sequence payload — use for fresh rebuilds |
 | `PATCH /timeline` | Partial update of timeline-level fields — preferred for targeted changes like updating `audioMix` without touching anything else |
 | `GET /timeline/state?sequence_id=timeline_v2` | Normalized timeline state plus `_clip_index` |
 | `GET /timeline/clips?sequence_id=timeline_v2` | Flattened clip list with track metadata |
 
-**`POST /timeline` is a merge, not a replace.** Submitting `{ "audioMix": { ... } }` updates `audioMix` without touching clips, snapshots, or other timeline fields. You do not need to send the full timeline payload every time. `PATCH /timeline` behaves identically for partial updates and is the preferred endpoint when you are updating a single field.
+**Use `PATCH /timeline` for partial updates.** Submitting `{ "audioMix": { ... } }` through PATCH updates `audioMix` without touching clips, snapshots, or other timeline fields. You do not need to send the full timeline payload for single-field updates.
 
-Both endpoints return the updated `version` (integer, incremented on every save) and `lastSaved` (ISO 8601 datetime with timezone offset, e.g. `2026-04-12T19:39:30.991013+00:00`).
+**Use `POST /sequences` or `POST /timeline/fork` for clean sequence rebuilds.** `POST /sequences` creates a new named sequence from an explicit payload. `POST /timeline/fork` copies settings/audio/mix from an existing sequence and can clear clips for a rebuild. Use `POST /timeline?sequence_id={new_id}` only when you intentionally want to replace a full sequence payload. Always record the `sequence_id` in scripts, ledgers, render/export calls, and review submissions so you do not render a stale default sequence.
 
 Use `GET /timeline/state` to read the full current edit. Use `GET /timeline/clips` when you only need the clip list (lighter response, easier to iterate).
+
+### Create Fresh Sequence
+
+Prefer a fresh sequence over iterative mutation when any of these happen: more than one structural review revision, the same one-frame/media-gap warning moves after repair, audio patching creates artifacts twice, or the sequence contains orphan patch tracks, stale narration, muted keyframe remnants, or duplicate semantic shot families.
+
+```http
+POST /api/post-production/{project_id}/sequences
+Content-Type: application/json
+```
+
+```json
+{
+  "sequence_id": "review_v3_clean",
+  "name": "Review v3 Clean",
+  "sequence": { "width": 1080, "height": 1920, "frameRate": 30 },
+  "tracks": [
+    { "id": "video", "type": "video", "label": "Video", "clips": [] },
+    { "id": "dialogue", "type": "audio", "label": "Narration", "clips": [] },
+    { "id": "music", "type": "audio", "label": "Music", "clips": [] }
+  ],
+  "audioMix": {
+    "ducking": [
+      { "sourceTrack": "music", "keyTrack": "dialogue", "duckedGain": 0.35, "attackMs": 300, "releaseMs": 500 }
+    ]
+  },
+  "metadata": { "reason": "review-rebuild", "sourceSequenceId": "timeline_v2" }
+}
+```
+
+After creation, rebuild frame-native clips into the new sequence. For review revisions, keep one primary visual track, one narration/dialogue track, one music track, and only add extra tracks when they serve a specific editorial purpose.
+
+To preserve settings, audio mix, and tracks from an existing sequence before rebuilding, fork it:
+
+```json
+POST /api/post-production/{project_id}/timeline/fork
+{
+  "source_sequence_id": "timeline_v2",
+  "target_sequence_id": "review_v3_clean",
+  "name": "Review v3 Clean",
+  "clear_visuals": true,
+  "reason": "review-rebuild"
+}
+```
+
+Use `POST /sequences/{sequence_id}/duplicate` when you want a full copy with all clips intact.
 
 ### Clip CRUD
 
@@ -117,6 +164,8 @@ Use `GET /timeline/state` to read the full current edit. Use `GET /timeline/clip
 The clip data is nested under a `clip` key and placement data under a `placement` key. Use `track_id` (not `track`) in `placement`. Legacy flat payloads (where clip and placement fields are mixed at the top level) may still be accepted for compatibility, but the nested form above is the canonical contract.
 
 **`POST /timeline/clips` always creates a new clip — it does not upsert.** Running the same edit logic twice doubles your clips. If you are iterating and may have already added a clip for a given shot, read the current clip list via `GET /timeline/clips` first. To update a clip's `start` / `duration` / `kenBurns`, use `PATCH /timeline/clips/{clip_id}`. To replace a clip, `DELETE` the old one (with `ripple=true` if you want subsequent clips to shift) and then `POST` the new one. Field-observed failure mode: ~30 intended clips ballooned to 72 after iterative append-only POSTs.
+
+**Image clip visual fit:** For posters/key art where the whole image must remain visible, set clip-level `fitMode: "contain"` and optional `background: "black"`, `"blur"`, or a CSS-style color such as `"#101010"`. `fitMode: "cover"` / `"crop"` fills the frame with center crop; `fitMode: "fill"` stretches. Do not use Ken Burns/transform on the same clip when you need exact contain/cover output.
 
 ### Timing and Duration Semantics
 
@@ -390,7 +439,12 @@ Tell the user the timeline is ready for review. They open it in the browser at `
 ### 10. Read Back and Address Notes
 After the user makes changes, read the updated state with `GET /timeline/state`. See what changed. Address remaining notes with targeted clip edits, not a full rebuild.
 
-### 11. Final Export
+### 11. Rebuild When Patch State Accumulates
+If review fixes require more than one structural revision, or if audio/micro-repair artifacts recur twice, stop mutating the current sequence. Create a new `sequence_id`, rebuild from the authoritative beat/cut list and known-good media, and produce a new render/review asset. Do not keep nudging one-frame repairs on a contaminated timeline.
+
+**Replace narration means replace narration.** Remove prior narration clips, patch tracks, and stale narration automation; add one full regenerated narration asset; re-transcribe it; then reflow cuts. Do not overlay a replacement narration on top of old narration unless the user explicitly asks for a layered audio treatment.
+
+### 12. Final Export
 Use `POST /export` for final delivery. Use `POST /render` for preview-task rendering during editorial iteration.
 
 ## Collaborative Model
@@ -430,4 +484,6 @@ The timeline normalizes all clips to the delivery resolution automatically. No m
 - **Lock link groups after sync confirmation.** A locked group rejects all mutating operations, protecting confirmed sync from accidental edits.
 - **Source shortfalls leave real gaps — no freeze-padding.** If you edit in a clip that's shorter than the program range, PR0TA inserts only the available media and leaves the tail as a gap. Check edit response warnings for `source_shortfall`. To fill the gap with retimed media, re-edit with `fitToFill: true`. To fill it with different media, overwrite the gap region with a new source.
 - **Render warnings need adjudication.** For every `timelineMediaGaps[]` or `renderedPixelGaps[]` item, use `startFrame`, `endFrame`, and timecode, attach the thumbnail or frame path to your notes, classify the warning, and record the clip/frame-range repair. Do not clear warnings based only on black-frame checks.
+- **Review links need full quality.** Use `quality=low` only for internal segment checks. For review links meant for client viewing, render/export full quality and record the `sequence_id`, export asset ID, review round ID, and review URL together.
+- **Verify review asset identity.** After creating a review link, confirm the submitted/review asset ID matches the export asset you intended to show.
 - **Use the app's timeline for assembly.** Clip CRUD, Ken Burns, audio mix, preview, and render all live on the post-production timeline. If you hit something the timeline can't handle, file a bug with PR0TA platform engineering so it gets fixed in the app — that's better for every future production than one-off local workarounds.

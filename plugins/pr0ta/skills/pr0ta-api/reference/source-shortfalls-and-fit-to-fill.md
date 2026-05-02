@@ -121,13 +121,13 @@ GET /api/post-production/{project_name}/timeline/debug-report?sequence_id=timeli
 
 The debug report bundles track coverage, primary visual gaps, source-duration-vs-program-duration, retime state, audio asset presence, keyframe counts, and render-risk warnings in one response.
 
-Render and export results always include explicit diagnostic arrays, even when empty:
+Render and export results always include explicit diagnostic arrays, even when empty. Classify each warning before repair:
 
 - `timelineMediaGaps[]` plus `renderWarnings[]` entries with `code: "timeline_media_gap"` — deterministic timeline/media-coverage failures: rendered frames where no visual media source covers the program interval. The detector works in rendered frames and ignores a one-frame sub-frame rounding tail, so normal editorial math does not become a false short trim.
-- `renderedPixelGaps[]` plus `renderWarnings[]` entries with `code: "rendered_pixel_gap"` — post-render exact-frame probes around clip boundaries found transparent/checkerboard output. These entries include `start_frame`, `end_frame`, `start_timecode`, `end_timecode`, `duration_frames`, `clip_id`, `track_id`, confidence, and usually a thumbnail.
+- `renderedPixelGaps[]` plus `renderWarnings[]` entries with `code: "rendered_pixel_gap"` — post-render exact-frame probes around clip boundaries found suspicious pixels. These entries include `start_frame`, `end_frame`, `start_timecode`, `end_timecode`, `duration_frames`, `clip_id`, `track_id`, confidence, and usually a thumbnail.
 - `transparentOutputFrames[]` — one item per bad rendered frame with `frame` / `frame_index`, `time_seconds`, `timecode`, `expectedClipId`, `expectedClipLabel`, `assetId`, `trackId`, confidence, and thumbnail when available. Use this for frame-by-frame repairs and review annotation matching.
 
-Treat either diagnostic as a visible failure until adjudicated. Pixel inspection is the render-level truth for checkerboard output; timeline coverage explains deterministic no-media intervals.
+Classify rendered-pixel findings as one of: actual transparent/checkerboard frame, expected matte/pillarbox/letterbox around intentionally contained artwork, source-tail media gap, or uncertain. Actual transparent/checkerboard and source-tail gaps are hard failures. Expected matte is a warning/adjudication item, not automatically a missing-frame failure. Do not clear uncertain warnings without thumbnail/frame evidence.
 
 ---
 

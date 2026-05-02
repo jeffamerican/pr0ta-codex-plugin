@@ -153,7 +153,7 @@ Pass image, video, and audio references using the `references` array:
 
 | Production Type | Image Refs | Video Refs | Audio Refs | Notes |
 |----------------|-----------|-----------|-----------|-------|
-| **Dialogue with visible speaker** | Character frontal + character sheet | — | Pre-recorded dialogue (ElevenLabs TTS) | **Best workflow for lip sync.** Generate TTS first, feed as @audio1. Phoneme-level lip sync in 8+ languages. |
+| **Dialogue with visible speaker** | Character frontal + character sheet | — | Pre-recorded dialogue (Gemini Flash TTS) | **Best workflow for lip sync.** Generate TTS first, feed as @audio1. Phoneme-level lip sync in 8+ languages. |
 | **Character-driven narrative** | Character frontal + character sheet | — | — | Use stored character_id for identity lock. Narrate in post. |
 | **Music video / rhythm piece** | Character + style reference | Dance/motion reference | Music track | Sync motion to @audio1 beat pattern |
 | **Cinematic B-roll** | Location/mood reference | Camera motion reference | — | Focus on environment and camera work |
@@ -169,7 +169,7 @@ Seedance 2.0 Omni can generate video driven by audio input — this is one of it
 
 **Dialogue-to-Video workflow (pre-recorded speech → talking character video):**
 
-1. Generate the character's dialogue audio first using ElevenLabs TTS (see `pr0ta-audio`) — this gives you precise language and voice control
+1. Generate the character's dialogue audio first using Gemini Flash TTS (see `pr0ta-audio`) — this gives you precise language and voice control. Use ElevenLabs v3 only for specific ElevenLabs voices or legacy tag workflows.
 2. Upload the dialogue audio as `@audio1` and the character reference as `@image1`
 3. Prompt Seedance to animate the character speaking the dialogue:
 
@@ -410,4 +410,3 @@ After generating all extension segments, assemble them on the post-production ti
 - **Describe only what changes** — don't re-describe the existing scene in full; focus on the new action, new character, or new camera movement
 - **One new major element per extension** — introducing too many changes at once can break continuity. Add one new character, one environment shift, or one major action per segment
 - **Match duration to action** — request only enough duration to cover the new action (3–5 seconds per segment is a good default). Overly long extensions risk drift
-

@@ -263,6 +263,9 @@ Essential facts:
 - **Final export** — `POST /export` is the final-export route for master delivery. Use `/render` for iteration, `/export` when the cut is locked.
 - **Clip metadata** — timeline clips now expose `sourceMedia` (width, height, aspectRatio, duration, fitsSequence) and `generation_context` (prompt, model) for aspect-fit auditing and provenance checks.
 - **Source shortfalls** — when source media is shorter than the requested edit duration, PR0TA inserts only the available source and leaves a real gap. No freeze-padding. Use `fitToFill: true` to retime explicitly, then verify the frame-safe fields and preview-render warnings. See `reference/source-shortfalls-and-fit-to-fill.md`.
+- **Fresh sequence rebuilds** — use `POST /sequences` for a new explicit sequence, or `POST /timeline/fork` to preserve settings/audio/mix before clearing clips for a rebuild. Use `POST /timeline?sequence_id={id}` only when intentionally replacing a full sequence payload. Render/export/review scripts must pass and record the intended `sequence_id`. See `reference/timeline-api.md` → "Create Fresh Sequence".
+- **Clip at review timestamp** — use `GET /timeline/clip-at?sequence_id={id}&time={seconds}` to map review notes to active clip/asset/track context.
+- **Image fit and semantic reuse** — image clips accept `fitMode`/`background` for contain/cover/fill poster handling, and analysis reports `semanticReuse[]` for repeated `sourceGroup` / `usageFamily` families even when asset IDs differ.
 
 ## Editorial Primitives — Reference
 
@@ -290,6 +293,8 @@ Essential facts:
 - **`enable_studio_mode`** must be called before first review-room creation. Enables Studio mode on the project. REST equivalent: `PATCH /api/v2/projects/{project_id}/studio`.
 - **`submit_assets_for_review`** creates a public review room and returns a `review_url` the reviewer opens in a browser — no PR0TA account required. Response includes `submissions[]` (per-asset status) and `review_round{}` (round metadata with share links).
 - **`get_review_annotations`** retrieves all feedback: annotations with `annotation_type` (pin, region, drawing), time codes (`start_time_seconds`), normalized frame coordinates (`geometry`), and review events (`comment`, `approved`, `approved_with_notes`, `changes_requested`).
+- **Fetch notes from a public review link** — parse the share token from the review URL and call `GET /api/public/workspace/review-rounds/{share_token}/annotations`. Use this read route for note ingestion; authenticated write-oriented annotation routes require body/geometry fields and are not the right first call.
+- **Verify review asset identity** — after creating a review link, confirm the submitted/review asset ID is the export asset you intended to show.
 - **Completion webhook** — optional `webhook_url` on submission triggers a `review_round_completed` POST after all submitted assets have decisions. Treat as a wake-up signal, then call `get_review_annotations` for the full payload.
 - **Role access** — available to `editor`, `director`, `producer`, `script_supervisor` roles.
 - **Integration loop:** submit → share URL → wait for webhook or poll → pull feedback → apply in timeline using editorial primitives (see `pr0ta-editorial`, `reference/editorial-primitives.md`).

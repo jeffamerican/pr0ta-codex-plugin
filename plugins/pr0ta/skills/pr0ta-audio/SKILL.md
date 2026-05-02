@@ -15,7 +15,7 @@ description: "PR0TA audio workflows for TTS, voice cloning/design, speech-to-spe
 
 Use this path for any asset that contains **human speech**:
 
-- **TTS narration and dialogue** generated through the Audio Generator (ElevenLabs v3).
+- **TTS narration and dialogue** generated through the Audio Generator (Gemini Flash TTS by default; ElevenLabs v3 fallback).
 - **Music with vocals** — treat as speech; Scribe V2 will transcribe the lyrics and return word-level timing.
 - **Video assets with `sound: "on"`** containing native dialogue or ambient speech. `POST /api/v2/projects/{project_id}/transcribe` now accepts video directly (it derives an audio asset under the hood); for narration-timeline auto-population use `POST /api/audio/transcription/start`.
 - **Uploaded audio** — any user-provided narration, interview recording, or field audio.
@@ -64,12 +64,12 @@ Use this path for any asset that is **instrumental music with no speech**:
 
 **Note on SFX and short point hits:** Sound effects that are single-point hits (under ~1 second, played once at a marker) do not require indexing — they are placed by marker time. SFX beds, ambient beds, and any longer SFX asset that will be trimmed or cut against should go through Path B if they are music-like, or Path A if they contain speech.
 
-> **When to use ElevenLabs TTS vs native video audio:**
-> - **Non-English dialogue:** Always use ElevenLabs TTS — native video audio is unreliable for non-English speech. Generate video with `sound: "off"` and layer TTS in post.
-> - **Narration over footage (any language):** Use ElevenLabs TTS — gives you precise voice/language/pacing control independent of the video.
+> **When to use PR0TA TTS vs native video audio:**
+> - **Non-English dialogue:** Use PR0TA TTS — native video audio is unreliable for non-English speech. Generate video with `sound: "off"` and layer TTS in post.
+> - **Narration over footage (any language):** Use PR0TA TTS — gives you precise voice/language/pacing control independent of the video.
 > - **English dialogue with visible speaker:** Use native video audio (`sound: "on"` in the video generation) for lip sync — see the `pr0ta-video` skill.
 
-**API option available:** Text-to-speech generation can be done entirely via API using `POST /api/v2/projects/{project_id}/generate` with `generator=audio`, `mode=txt_to_speech`. The default TTS model is ElevenLabs v3 (`eleven_v3`). **Gemini 3.1 Flash TTS** (`fal-ai/gemini-3.1-flash-tts`) is also available as an alternative — it supports `style_instructions`, multi-speaker via `speakers`, `language_code`, and `temperature`. Use `GET /api/crew/model_defaults?model_id=fal-ai/gemini-3.1-flash-tts` for the full parameter list. See the `pr0ta-api` skill for the full request schema.
+**API option available:** Text-to-speech generation can be done entirely via API using `POST /api/v2/projects/{project_id}/generate` with `generator=audio`, `mode=txt_to_speech`. The default TTS model is **Gemini 3.1 Flash TTS** (`fal-ai/gemini-3.1-flash-tts`). Use **ElevenLabs v3** (`eleven_v3`) as the fallback when Gemini is unavailable, when the user requires a specific ElevenLabs `voice_id`, or when an existing workflow depends on Eleven v3 audio tags. Gemini supports `style_instructions`, multi-speaker via `speakers`, `language_code`, and `temperature`. Use `GET /api/crew/model_defaults?model_id=fal-ai/gemini-3.1-flash-tts` for the full parameter list. See the `pr0ta-api` skill for the full request schema.
 
 ## Modes
 
@@ -78,20 +78,49 @@ Create custom voice profiles for text-to-speech.
 
 **Key parameters:** character name, voice characteristics description (max 1000 characters), sample line for preview (max 500 characters), and model selection.
 
-### 2. TXT TO SPEECH -- **ELEVENLABS V3**
-Convert text to natural speech using ElevenLabs v3.
+### 2. TXT TO SPEECH -- **GEMINI FLASH TTS**
+Convert text to natural speech using Gemini 3.1 Flash TTS.
 
-**Default model: Eleven v3 (Dialogue TTS, Alpha)**
+**Default model: Gemini 3.1 Flash TTS**
 
-**Key parameters:** character voice (optional, for consistent voice identity), text prompt (max 5000 characters), model selection (`eleven_v3`), and text normalization (default: auto).
+**Key parameters:** prompt/text (max 5000 characters), model selection (`fal-ai/gemini-3.1-flash-tts`), optional Gemini voice, `style_instructions`, `language_code`, `temperature`, and `speakers` for multi-speaker dialogue.
 
 ### 3. VOICE CHANGE
 Transform an existing audio recording to a different voice. The API equivalent is Speech-to-Speech (STS) — see "Voice V2 API" section below for the programmatic route (`POST /voices/sts`).
 
 
+## Gemini Flash TTS Prompting
+
+Use Gemini Flash TTS first for new narration and dialogue. Gemini responds best when the delivery plan is explicit and separated from the spoken transcript.
+
+**Recommended prompt structure:**
+
+```text
+AUDIO PROFILE
+Warm documentary narrator, close-mic studio recording, natural conversational delivery, no music, no sound effects.
+
+SCENE
+This is a 45-second social-video voiceover explaining a scientific concept to a curious general audience.
+
+DIRECTOR'S NOTES
+Pace around 145 words per minute. Keep authority without sounding like an announcer. Pause briefly after the opening sentence. Lightly emphasize the named concepts, but do not overact.
+
+TRANSCRIPT
+The actual words to speak go here.
+```
+
+**Prompting rules:**
+
+- Put tone, pace, accent, emotion, mic feel, and audience context in `style_instructions` or the prompt's director notes; keep the transcript readable.
+- For narration, include an audio profile and scene context before the transcript. Do not rely on punctuation alone for pacing.
+- For dialogue, label lines with speaker names and make the names exactly match the `speakers` configuration.
+- Use inline expressive tags sparingly for human reactions or delivery beats, such as `[laughs]`, `[softly]`, or `[pause]`. Do not overload every sentence with tags.
+- For long narration, split on paragraph or scene boundaries and reuse the same audio profile/director notes across chunks.
+- Verify the rendered take by listening and by transcription. Regenerate if names, acronyms, years, or emphasis land incorrectly.
+
 ## Voice Discovery API
 
-Before generating TTS, discover available voices using the ElevenLabs V2 voice listing endpoint directly:
+Use ElevenLabs voice discovery when the user chooses the ElevenLabs v3 fallback or needs a specific ElevenLabs cloned/generated voice. Before generating ElevenLabs TTS, discover available voices using the ElevenLabs V2 voice listing endpoint directly:
 
 ```
 GET https://api.elevenlabs.io/v2/voices
@@ -107,11 +136,11 @@ Requires `xi-api-key` header. Supports pagination (`next_page_token`, `page_size
 
 **Caching:** Cache the voice list for a short TTL (recommended: 10 minutes). Refresh the cache on `404 voice_id` errors — this handles cases where voices are added or removed between cache refreshes.
 
-**Example usage in a TTS workflow:**
+**Example usage in an ElevenLabs fallback workflow:**
 1. Call `GET https://api.elevenlabs.io/v2/voices?page_size=50&category=premade` to browse voices
 2. Present voice options to the user (each entry has `voice_id`, `name`, `labels`, `preview_url`)
 3. Use the selected `voice_id` in the PR0TA generation request with `model: "eleven_v3"`
-4. If generation fails with a model-compatibility error, retry with `model: "eleven_multilingual_v2"`
+4. If the ElevenLabs v3 generation fails with a model-compatibility error, retry with `model: "eleven_multilingual_v2"`
 
 ## Voice V2 API — Clone, Design, and Speech-to-Speech
 
@@ -145,127 +174,32 @@ Pick the route based on what the user has and what they need:
 
 **Full endpoint contracts** (request/response shapes for all four routes, model-ID table, field details): Read `pr0ta-api/reference/voice-v2.md`.
 
-## Audio Tags & Emotion Control (Eleven v3)
+## ElevenLabs v3 Fallback Tags
 
-Eleven v3 interprets **audio tags** — words in square brackets — as performance directions. Tags control emotion, pacing, reactions, character voice, and even ambient sound effects. This is the primary mechanism for rich dialogue and narration generation. Audio tags are **v3 only** — older models ignore them.
+Use ElevenLabs v3 audio tags only when the user selects the ElevenLabs fallback or when maintaining a legacy ElevenLabs-tagged workflow. Keep Gemini Flash TTS as the first pick for new narration and dialogue.
 
-### Syntax
-
-Place tags inline in the text, before or within the speech they modify:
-
-```
-[sorrowful] I couldn't sleep that night... [quietly] And suddenly, that's when I saw it.
-```
-
-Tags can be combined for richer performances:
-
-```
-[hesitant][nervous] I... I'm not sure this is going to work. [gulps]
-```
-
-### Tag Reference
-
-**Emotional states** — steer the feeling of a line:
-`[excited]`, `[nervous]`, `[frustrated]`, `[sorrowful]`, `[calm]`, `[angry]`, `[sad]`, `[cheerfully]`, `[flatly]`, `[deadpan]`, `[playfully]`, `[annoyed]`, `[flustered]`, `[casual]`, `[tired]`, `[curious]`, `[resigned]`
-
-**Reactions & human sounds** — add naturalistic texture:
-`[sigh]`, `[laughs]`, `[gulps]`, `[gasps]`, `[whispers]`, `[shouts]`, `[clears throat]`, `[soft chuckle]`, `[crying]`, `[breathes]`, `[swallows]`
-
-**Delivery & pacing** — control rhythm and speed:
-`[pause]`, `[continues after a beat]`, `[rushed]`, `[slows down]`, `[deliberate]`, `[rapid-fire]`, `[stammers]`, `[drawn out]`, `[timidly]`, `[emphasized]`, `[understated]`, `[continues softly]`, `[hesitates]`
-
-**Narrative tone** — set the storytelling register:
-`[dramatic tone]`, `[lighthearted]`, `[reflective]`, `[serious tone]`, `[conversational tone]`, `[sarcastic tone]`, `[wistful]`, `[matter-of-fact]`, `[awe]`
-
-**Character & accent** — shift vocal identity mid-text:
-`[British accent]`, `[Australian accent]`, `[Southern US accent]`, `[French accent]`, `[American accent]`, `[pirate voice]`, `[evil scientist voice]`, `[childlike tone]`, `[fantasy narrator]`, `[sci-fi AI voice]`, `[classic film noir]`
-
-**Sound effects** (experimental) — inline ambient sounds:
-`[gunshot]`, `[applause]`, `[explosion]`, `[leaves rustling]`, `[gentle footsteps]`, `[clapping]`
-
-### Writing Dialogue with Audio Tags
-
-For rich multi-character dialogue, tag each line with the character's emotional state and delivery:
-
-```
-[excited] You won't believe what I found down there!
-
-[skeptical][dry] Let me guess — another "ancient artifact" that turns out to be a pipe fitting.
-
-[defensive] No, this is different. [quieter, more serious] This one was moving.
-
-[long pause][stunned] ...Moving?
-
-[nervous][rushed] Look, I know how it sounds. [gulps] But I need you to come see it before it stops.
-```
-
-**Key techniques for dialogue:**
-- Tag the **emotional shift**, not just the base emotion. A character going from confident to uncertain is more compelling than one who's just "nervous" throughout.
-- Use **reaction tags between lines** (`[sigh]`, `[laughs]`, `[gulps]`) to create conversational texture — these are the beats that make dialogue feel alive.
-- **Interruptions** use dashes: `I was just trying to—` and the next line picks up immediately.
-- **Trailing thoughts** use ellipses: `I thought maybe... [pause] no, never mind.`
-- **Layer tags** for nuanced delivery: `[hesitant][quiet]` is different from `[quiet]` alone.
-
-### Writing Narration with Audio Tags
-
-For narration and voiceover, use tags to create emotional arcs across longer passages:
-
-```
-[reflective] I never thought I'd say this, but... [pause] maybe the machine was right.
-
-[building intensity] The signal was getting stronger. Every reading confirmed what we'd feared.
-[whispers] And then — silence. Complete, absolute silence.
-
-[awe] When I opened my eyes, the sky had changed color.
-```
-
-**Key techniques for narration:**
-- Set a **base tone** at the start of each passage (`[reflective]`, `[serious tone]`, `[lighthearted]`) and then add **moment-specific tags** within it.
-- Use `[pause]` and `[continues after a beat]` for dramatic pacing — these are more reliable than relying on punctuation alone.
-- Build **emotional arcs**: start calm, introduce tension tags, then resolve. The model handles longform emotional evolution naturally.
-
-### Punctuation as Performance Direction
-
-Eleven v3 treats punctuation as implicit delivery cues — these complement audio tags:
-
-- **Ellipses** (`...`) create natural pauses and trailing-off effects
-- **Em dashes** (`—`) create abrupt stops and interruptions
-- **CAPS** add emphasis to specific words: `This is NOT what I meant`
-- **Exclamation marks** increase energy; **question marks** add rising inflection
-- **Short sentences** speed up pacing; **long flowing sentences** slow it down
-
-### Important Constraints
-
-- **SSML is not supported in v3.** Do not use `<break>`, `<phoneme>`, or other SSML tags — they will be read as literal text. Use audio tags and punctuation instead.
-- **Voice selection matters more than tags.** A voice trained on calm, measured speech won't suddenly produce a convincing shout from `[shouts]` alone. Match the voice to the emotional range you need.
-- **Professional Voice Clones (PVCs) are not optimized for v3.** Use Instant Voice Clones or prompt-designed voices for best audio tag responsiveness.
-- **Tags are suggestive, not deterministic.** The model interprets tags contextually. Regenerate if a take doesn't land — use the `seed` parameter for reproducibility when you find a good take.
-- **Stability slider affects expressiveness.** Set to "Creative" or "Natural" for maximum tag responsiveness. Higher stability = more consistent but less emotionally dynamic.
-- **Keep dialogue under 2000 characters per call** for the Text to Dialogue modality. For standard TTS, the limit is 5000 characters.
+For the full ElevenLabs tag catalog, examples, punctuation behavior, and constraints, read `reference/elevenlabs-v3-audio-tags.md`.
 
 ## API TTS Generation (Quick Reference)
 
 The full schema is in `pr0ta-api`, but here's the complete pattern for generating speech via API:
 
 ```bash
-# 1. Discover voices (direct ElevenLabs V2 endpoint)
-curl -sL "https://api.elevenlabs.io/v2/voices?search=narrator&page_size=20" \
-  -H "xi-api-key: $ELEVENLABS_API_KEY" | jq '.voices[] | {voice_id, name, category}'
-
-# 2. Generate speech
+# 1. Generate speech with Gemini Flash TTS
 curl -X POST "https://app.pr0ta.com/api/v2/projects/$PROJECT_ID/generate" \
   -H "Authorization: Bearer $PAT" \
   -H "Content-Type: application/json" \
   -d '{
     "generator": "audio",
     "mode": "txt_to_speech",
-    "model": "eleven_v3",
-    "text": "[reflective] The city had changed since I last saw it... [pause] but then again, so had I.",
-    "voice_id": "JBFqnCBsd6RMkjVDRZzb",
-    "speed": 0.95
+    "model": "fal-ai/gemini-3.1-flash-tts",
+    "text": "AUDIO PROFILE\nWarm documentary narrator, close-mic studio recording, natural conversational delivery.\n\nSCENE\nA 30-second social-video voiceover for a curious general audience.\n\nDIRECTOR NOTES\nPace around 145 words per minute. Pause briefly after the opening sentence. Lightly emphasize the named concepts.\n\nTRANSCRIPT\nThe city had changed since I last saw it, but then again, so had I.",
+    "voice": "Kore",
+    "style_instructions": "Warm, reflective, measured, never announcer-like.",
+    "language_code": "en-US"
   }'
 
-# 3. Poll for completion — returns task_id
+# 2. Poll for completion — returns task_id
 # Task result now includes asset_id directly: result.asset_id
 # Use the reliability contract from pr0ta-api to poll and download
 ```
@@ -275,14 +209,16 @@ curl -X POST "https://app.pr0ta.com/api/v2/projects/$PROJECT_ID/generate" \
 | Parameter | Type | Default | Notes |
 |-----------|------|---------|-------|
 | `text` | string | required | Max 5000 characters per call |
-| `model` | string | `eleven_v3` | ElevenLabs model variant |
-| `voice_id` | string | optional | Voice profile ID from discovery API |
-| `speed` | float | 1.0 | Range: **0.25–4.0**. Use 0.9–0.95 for a cinematic narration feel. |
-| `language` | string | auto | ISO code for target language |
+| `model` | string | `fal-ai/gemini-3.1-flash-tts` | Default TTS model. Use `eleven_v3` as fallback. |
+| `voice` | string | optional | Gemini prebuilt voice name. |
+| `style_instructions` | string | optional | Tone, pace, accent, emotion, and delivery notes. |
+| `language_code` | string | optional | Locale hint such as `en-US` or `fr-FR`. |
+| `speakers` | array | optional | Multi-speaker voice config; speaker names must match transcript labels. |
+| `voice_id` | string | optional | ElevenLabs fallback only; voice profile ID from discovery API. |
 
-**V3 compatibility — try-and-fallback.** Do not gate voice selection on metadata fields like `high_quality_base_model_ids`. Instead, attempt generation with `model: "eleven_v3"` and fall back to `"eleven_multilingual_v2"` if it fails. See the Voice Discovery API section above.
+**Fallback:** If Gemini Flash TTS is unavailable or the user requires a specific ElevenLabs voice, retry with `model: "eleven_v3"` and an ElevenLabs `voice_id`. If ElevenLabs v3 itself fails with a model-compatibility error, retry with `"eleven_multilingual_v2"`. See the Voice Discovery API section above.
 
-**For non-English TTS:** ElevenLabs v3 supports multilingual voices. Write the text in the target language (e.g., actual Hebrew, Spanish, Japanese). Select a voice that supports the language — use `GET https://api.elevenlabs.io/v2/voices?search=multilingual` to find multilingual voices.
+**For non-English TTS:** Prefer Gemini Flash TTS with the transcript written in the target language and `language_code` set when known. Use ElevenLabs v3 fallback only when the user specifically needs an ElevenLabs voice.
 
 ## Audio-to-Text (Transcription) API
 

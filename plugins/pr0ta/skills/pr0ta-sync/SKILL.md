@@ -52,7 +52,7 @@ See `pr0ta-api` → "Narration Timeline API" for the full endpoint reference (26
 
 **Workflow:**
 
-1. **Generate narration** — ElevenLabs TTS via `POST /api/v2/projects/{id}/generate` (see `pr0ta-audio`).
+1. **Generate narration** — Gemini Flash TTS via `POST /api/v2/projects/{id}/generate` (see `pr0ta-audio`). Use ElevenLabs v3 as the fallback for specific ElevenLabs voices or v3-tagged legacy workflows.
 2. **Transcribe** — `POST /api/audio/transcription/start` with `asset_id` and `project_id`. **Scribe V2 is the preferred transcription provider** — it returns speaker IDs, audio events (laughter, applause), and per-word `event_type`. Whisper is still available as a fallback but is not recommended for narration-timeline work. Both are exposed via the audio-to-text modality (see `pr0ta-audio`). The transcript layer auto-populates in the narration timeline with word-level timestamps, sentence boundaries, and paragraph boundaries.
 3. **Review transcript** — `GET /narration-timeline/transcript` to verify word timing. Query specific ranges: `GET /transcript/words?from=44.0&to=52.0`.
 4. **Tag transcript segments** — `PUT /narration-timeline/transcript/tags` with content labels (e.g. `market_size`, `franchise_model`). These labels bridge narration to visuals.
@@ -219,7 +219,7 @@ Group all narration into the fewest possible TTS calls. Ideally one call per voi
 
 **How:**
 
-**Voice selection:** Before generating narration, use `GET https://api.elevenlabs.io/v2/voices` (direct ElevenLabs endpoint, requires `xi-api-key` header) to discover available voices. Cache the voice list for ~10 minutes and refresh on `404 voice_id` errors. See the `pr0ta-audio` skill for the voice discovery workflow.
+**Voice selection:** Gemini Flash TTS is the default and accepts a Gemini `voice` plus `style_instructions`. If the user chooses the ElevenLabs fallback, use `GET https://api.elevenlabs.io/v2/voices` (direct ElevenLabs endpoint, requires `xi-api-key` header) to discover available voices. Cache the voice list for ~10 minutes and refresh on `404 voice_id` errors. See the `pr0ta-audio` skill for the voice discovery workflow.
 
 Concatenate all narration text in scene order with appropriate pause indicators:
 
@@ -227,14 +227,14 @@ Concatenate all narration text in scene order with appropriate pause indicators:
 {
   "generator": "audio",
   "mode": "txt_to_speech",
-  "model": "eleven_v3",
-  "text": "In a world moving faster than ever... [pause] One team decided to build something different. [pause] They asked a simple question. [pause] What if creation had no limits?",
-  "voice_id": "JBFqnCBsd6RMkjVDRZzb",
-  "speed": 0.95
+  "model": "fal-ai/gemini-3.1-flash-tts",
+  "text": "AUDIO PROFILE\nWarm documentary narrator, close-mic studio recording, natural conversational delivery.\n\nSCENE\nNarration for a cinematic social-video opener.\n\nDIRECTOR NOTES\nPace around 145 words per minute. Pause briefly between scene beats. Keep wonder and authority without sounding like a trailer announcer.\n\nTRANSCRIPT\nIn a world moving faster than ever, one team decided to build something different. They asked a simple question. What if creation had no limits?",
+  "voice": "Kore",
+  "style_instructions": "Warm, cinematic, measured, lightly awe-forward."
 }
 ```
 
-Use `[pause]`, `...`, or paragraph breaks to create natural gaps between scene narrations. A slightly slower speed (0.9–0.95) often gives a more cinematic feel. For rich emotional delivery, use audio tags throughout — `[reflective]`, `[building intensity]`, `[awe]`, `[whispers]`, etc. **See `pr0ta-audio` → "Audio Tags & Emotion Control" for the full tag reference and dialogue/narration writing techniques.**
+Use Gemini `style_instructions`, paragraph breaks, and explicit director notes to create natural gaps between scene narrations. Use inline tags sparingly for reactions or specific delivery beats. **See `pr0ta-audio` → "Gemini Flash TTS Prompting" for the recommended prompt structure.**
 
 After generation, **transcribe with Scribe V2** via the audio-to-text modality to get word-level timestamps. These become the anchors in the narration timeline API (Step 2 of the narration-first workflow above).
 
@@ -389,7 +389,7 @@ Before delivering any assembled video from the post-production timeline, run thr
 - `pr0ta-timeline` — Post-production timeline execution (clip CRUD, Ken Burns, audio mix, preview, snapshots, render).
 - `pr0ta-editorial` — Editorial judgment (story spine, cutting discipline, ship criteria).
 - `pr0ta-api` → "Narration Timeline API" — Full endpoint reference for the narration timeline (26 endpoints).
-- `pr0ta-audio` — ElevenLabs TTS, voice discovery, Scribe V2 transcription, music generation.
+- `pr0ta-audio` — Gemini Flash TTS, ElevenLabs fallback voice discovery, Scribe V2 transcription, music generation.
 - `pr0ta-video` — Seedance 2.0 Omni and Kling V3/O3 multi-shot for video generation.
 - `pr0ta-image` — Nano Banana 2 for stills, title cards, and flash cards.
 - `pr0ta-consistency` — Multi-shot character and style continuity across generations.

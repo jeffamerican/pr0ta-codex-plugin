@@ -29,7 +29,7 @@ Behavior:
 | `image` | `edit_img` | Direct image editing |
 | `video` | `ref_to_vid` | Reference-to-video (Kling, Runway, etc.) |
 | `video` | `txt_to_vid` | Text-to-video (Seedance, LTX, etc.) |
-| `audio` | `txt_to_speech` | Text-to-speech (ElevenLabs v3) |
+| `audio` | `txt_to_speech` | Text-to-speech (Gemini Flash TTS default, ElevenLabs v3 fallback) |
 | `music` | `txt_to_music` | Text-to-music (ElevenLabs Music) |
 
 Unsupported combinations return `400`.
@@ -253,19 +253,20 @@ Advanced Seedance Omni request with stored character + multi-modal references:
 {
   "generator": "audio",
   "mode": "txt_to_speech",
-  "model": "eleven_v3",
-  "text": "Once upon a time, a little turtle found a very large cake.",
-  "voice_id": "JBFqnCBsd6RMkjVDRZzb",
-  "language": "en",
-  "speed": 1.0
+  "model": "fal-ai/gemini-3.1-flash-tts",
+  "text": "AUDIO PROFILE\nWarm documentary narrator, close-mic studio recording, natural conversational delivery.\n\nSCENE\nA short voiceover for a family-friendly animated story.\n\nDIRECTOR NOTES\nPace around 145 words per minute. Keep it playful but not exaggerated.\n\nTRANSCRIPT\nOnce upon a time, a little turtle found a very large cake.",
+  "voice": "Kore",
+  "style_instructions": "Warm, playful, clear.",
+  "language_code": "en-US"
 }
 ```
 
 Required fields: `generator`, `mode`, `text`
-Optional fields: `model`, `voice_id`, `language`, `speed`, `voice_settings`
+Optional fields: `model`, `voice`, `language_code`, `style_instructions`, `temperature`, `speakers`, `voice_id`, `voice_settings`
 
 Notes:
-- `voice_id` references a voice profile created in the Audio Generator's Voice Design tab or available as a platform default.
+- Gemini Flash TTS is the default model for new TTS requests.
+- `voice_id` is for the ElevenLabs v3 fallback and references a voice profile created in the Audio Generator's Voice Design tab or available as a platform default.
 - `text` max length: 5000 characters. For longer narrations, split into multiple requests.
 - Output is an audio asset (typically MP3).
 

@@ -8,12 +8,12 @@
 
 ### When to Use Native Audio vs Separate TTS
 
-This is a critical production decision. **Generating separate TTS and overlaying it on silent video is an anti-pattern for dialogue clips.** It produces no lip sync, no ambient sound matching, and sounds obviously fake.
+This is a critical production decision. **Generating separate TTS and simply overlaying it on silent visible-speaker video is an anti-pattern for normal dialogue clips.** It produces no lip sync, no ambient sound matching, and sounds obviously fake. The valid exceptions are deliberate non-English fallback workflows and audio-driven generation where pre-recorded TTS is fed as a model reference for lip sync, such as Seedance Omni `@audio1`.
 
 | Clip Type | `sound` Setting | Why |
 |-----------|----------------|-----|
 | **Dialogue (speaker visible)** | `"on"` | Native audio gives lip sync, ambient sound, and natural speech timing |
-| **Narration over footage (speaker NOT visible)** | `"off"` | Layer ElevenLabs TTS narration in post — higher quality voice control |
+| **Narration over footage (speaker NOT visible)** | `"off"` | Layer Gemini Flash TTS narration in post — higher quality voice control |
 | **B-roll / montage** | `"off"` | Layer music and SFX in post for precise timing control |
 | **Ambient / atmosphere** | `"on"` | Native ambient sound adds realism (rain, crowd, traffic) |
 
@@ -161,8 +161,8 @@ soft jazz, clinking glasses.
 
 - **Write dialogue in the actual target language**, not phonetic transliterations. For Hebrew, write actual Hebrew text (`"אומר בקול: 'סבא שלי אמר שיש הבטחה'"`), not English transliterations ("speaking aloud: 'Saba sheli omer...'"). Transliterations are almost always ignored — the model generates English speech or ambient sound instead.
 - **Non-English results are still inconsistent.** Even with actual language text, some models may default to English or produce garbled speech. Test with a short clip first.
-- **For reliable non-English dialogue:** Generate silent video (`sound: "off"`) and use ElevenLabs TTS separately (see `pr0ta-audio` skill). ElevenLabs v3 supports multilingual voices and gives you precise language control. Layer the TTS in post-production. This is more work but far more reliable for non-English dialogue.
-- **For non-English narration over footage:** Always use separate ElevenLabs TTS — native audio language control is too unreliable for narration.
+- **For reliable non-English dialogue:** Generate silent video (`sound: "off"`) and use Gemini Flash TTS separately (see `pr0ta-audio` skill). It gives you precise language and delivery control. Use ElevenLabs v3 only when the user needs a specific ElevenLabs voice. Layer the TTS in post-production. This is more work but far more reliable for non-English dialogue.
+- **For non-English narration over footage:** Always use separate PR0TA TTS — native audio language control is too unreliable for narration.
 
 ### Parameter Mapping: `sound` vs `with_audio`
 
@@ -172,4 +172,3 @@ The PR0TA unified API uses `sound: "on"` / `sound: "off"`. Some provider-level d
 |-----------|--------------------------|
 | `"sound": "on"` | `with_audio: true` / `generate_audio: true` |
 | `"sound": "off"` | `with_audio: false` / `generate_audio: false` |
-

@@ -2,6 +2,8 @@
 
 Voice discovery (direct ElevenLabs V2 endpoint), plus project-scoped PR0TA endpoints for voice cloning, prompt-based voice design, committing voice-design previews, and speech-to-speech (STS) conversion. Clone/design/STS routes sit under `/api/v2/projects/{project_id}/voices/...` and require authenticated project access.
 
+Gemini Flash TTS (`fal-ai/gemini-3.1-flash-tts`) is the default for new PR0TA TTS generation. Use this ElevenLabs voice API when the user selects the ElevenLabs v3 fallback, needs a specific ElevenLabs cloned/generated voice, or needs voice clone/design/STS workflows.
+
 **For workflow guidance** (when to clone vs design vs STS, decision tree), see `pr0ta-audio` → "Voice V2 — Clone, Design, and Speech-to-Speech".
 
 ## Voice Discovery (Direct ElevenLabs V2 Endpoint)
@@ -66,7 +68,8 @@ Requires `xi-api-key` header. Supports pagination (`next_page_token`, `page_size
 
 | Model ID | Mode Hint | Purpose |
 |----------|-----------|---------|
-| `eleven_v3` | `txt_to_speech` | Text-to-speech (existing) |
+| `fal-ai/gemini-3.1-flash-tts` | `txt_to_speech` | Default text-to-speech |
+| `eleven_v3` | `txt_to_speech` | ElevenLabs fallback text-to-speech |
 | `eleven_voice_design_prompt` | `voice_design` | Prompt-based voice design |
 | `eleven_ttv_v3` | `voice_design` | Voice design (v3 variant) |
 | `eleven_multilingual_ttv_v2` | `voice_design` | Voice design (multilingual) |

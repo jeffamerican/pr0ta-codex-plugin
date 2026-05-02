@@ -101,8 +101,8 @@ Use `model_defaults` to discover the authoritative parameter list and types for 
 | Video | Seedance 2.0 Omni | `muapi/seedance-2.0-omni-reference` |
 | Video | Seedance 2.0 T2V | `muapi/seedance-v2.0-t2v` |
 | Video | Lyra 2 Zoom (i2v) | `fal-ai/lyra-2/zoom` |
-| Audio | Eleven v3 | `eleven_v3` |
 | Audio | Gemini 3.1 Flash TTS | `fal-ai/gemini-3.1-flash-tts` |
+| Audio | Eleven v3 fallback | `eleven_v3` |
 | Music | Eleven Music | `music-v1` |
 
 **Default recommendation:** For image work, **Nano Banana 2** (`nano_banana_2` for T2I, `fal-ai/nano-banana-2/edit` for editing) is the default — fast and cost-effective. Escalate to **GPT Image 2** (`openai/gpt-image-2` / `openai/gpt-image-2/edit`) for challenging prompt adherence or character consistency edits where GPT Image 2's superior identity preservation is needed.
@@ -218,4 +218,3 @@ Response includes:
 **Workflow:** Tag approved reference images with `reference_type: "character_reference"` and `category: "portrait"` or `"character_sheet"` via `PATCH /api/assets/{project_name}/annotations`. Store Kling Elements via `POST /elements` and Seedance tokens via `POST /characters`. Then read the bundle before generation and use the `provider_payloads` directly. See `pr0ta-consistency` → "Character Consistency Bundles" for the full workflow.
 
 ---
-

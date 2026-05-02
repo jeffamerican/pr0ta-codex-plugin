@@ -400,7 +400,7 @@ All video generation requests should explicitly set `sound: "on"` or `sound: "of
 | Clip type | `sound` | Why |
 |---|---|---|
 | Dialogue (speaker visible) | `"on"` | Native lip sync + matching ambient |
-| Narration over footage | `"off"` | Layer ElevenLabs TTS in post |
+| Narration over footage | `"off"` | Layer Gemini Flash TTS in post |
 | B-roll / montage | `"off"` | Layer music and SFX in post |
 | Ambient / atmosphere | `"on"` | Native ambient adds realism |
 

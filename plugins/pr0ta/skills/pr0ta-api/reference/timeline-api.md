@@ -12,12 +12,78 @@ Base prefix: `/api/post-production/{project_id}`
 GET /timeline                    — Returns the main sequence
 POST /timeline                   — Save/merge timeline-level fields (merges submitted keys into existing state; does not replace omitted keys)
 PATCH /timeline                  — Partial update of timeline-level fields (preferred for targeted changes)
+POST /sequences                  — Create a named sequence with optional dimensions, tracks, audio mix, and metadata
+POST /sequences/{sequence_id}/duplicate — Duplicate a sequence with clips intact
+POST /timeline/fork              — Fork a sequence; optionally clear clips for a clean rebuild
 GET /timeline/state?sequence_id=timeline_v2   — Normalized state + _clip_index
 GET /timeline/clips?sequence_id=timeline_v2   — Flattened clip list with track metadata
 GET /timeline/debug-report?sequence_id=timeline_v2   — Render-risk diagnostics for agents
+GET /timeline/clip-at?sequence_id=timeline_v2&time=12.5   — Active clip/asset context for a review timestamp
 ```
 
 `PATCH /timeline` merges submitted keys into existing state — submitting `{ "audioMix": { ... } }` updates `audioMix` without touching clips or snapshots. `POST /timeline` replaces the sequence and requires a full `tracks` array. Both return `sequence_id`, updated `version` (integer), and `lastSaved` (ISO 8601 datetime with timezone offset, e.g. `2026-04-12T19:39:30.991013+00:00`). Prefer `PATCH` for single-field updates.
+
+### Create Fresh Sequence
+
+When a review cut has accumulated bad patch state, create a clean sequence instead of continuing to mutate the old one. Field-tested triggers: more than one structural review revision, one-frame diagnostics that move after each patch, audio patch artifacts twice, stale narration/patch tracks, orphan tracks, muted keyframe remnants, or duplicate semantic shot families.
+
+```http
+POST /api/post-production/{project_id}/sequences
+Content-Type: application/json
+```
+
+```json
+{
+  "sequence_id": "review_v4_clean",
+  "name": "Review v4 Clean",
+  "sequence": { "width": 1080, "height": 1920, "frameRate": 30 },
+  "tracks": [
+    { "id": "video", "type": "video", "label": "Video", "clips": [] },
+    { "id": "dialogue", "type": "audio", "label": "Narration", "clips": [] },
+    { "id": "music", "type": "audio", "label": "Music", "clips": [] }
+  ],
+  "audioMix": {
+    "ducking": [
+      { "sourceTrack": "music", "keyTrack": "dialogue", "duckedGain": 0.35, "attackMs": 300, "releaseMs": 500 }
+    ]
+  },
+  "metadata": {
+    "reason": "review-rebuild",
+    "sourceSequenceId": "timeline_v2"
+  }
+}
+```
+
+Then add clips to `review_v4_clean` using frame-native timing and render/export with `sequence_id=review_v4_clean`. Record `sequence_id`, render task ID, export asset ID, review round ID, and review URL in the production ledger.
+
+To preserve settings, audio mix, metadata, and tracks from an existing sequence before rebuilding, fork it:
+
+```http
+POST /api/post-production/{project_id}/timeline/fork
+Content-Type: application/json
+```
+
+```json
+{
+  "source_sequence_id": "timeline_v2",
+  "target_sequence_id": "review_v4_clean",
+  "name": "Review v4 Clean",
+  "clear_visuals": true,
+  "reason": "review-rebuild"
+}
+```
+
+Use `POST /sequences/{sequence_id}/duplicate` when you want a full copy with all clips intact. Use `POST /timeline?sequence_id={id}` only when intentionally replacing a full sequence payload.
+
+### Clip At Review Timestamp
+
+For review-note repair, prefer:
+
+```http
+GET /api/post-production/{project_id}/timeline/clip-at?sequence_id=review_v4_clean&time=69.0444789
+```
+
+Response identifies the active clip(s) at that program time: `clip_id`, `asset_id`, source name/label, track ID/alias/type, start/end frame, start/end seconds, `primaryVisualClip`, and `nearestClip`.
 
 ### Sequence Settings
 
@@ -173,6 +239,8 @@ Clip data is nested under a `clip` key; placement under a `placement` key. Use `
 - `fitToFill` / `speed` — explicit retime state when a source range is stretched/compressed to a program duration.
 - `kenBurns` — Ken Burns motion (see below).
 - `transition` — transition to the next clip (dissolve, wipe, fade, etc.).
+- `fitMode` — image-clip visual fit: `contain` keeps the full poster/key art visible, `cover` / `crop` center-crops to fill the sequence, and `fill` stretches to the sequence. Use with `background: "black"`, `"blur"`, or a CSS-style color for matte/blur fill. Do not combine exact-fit image clips with Ken Burns/transform when the note is "show the whole poster."
+- `sourceGroup` / `source_group` / `usageFamily` / `usage_family` — optional semantic reuse family. Timeline analysis reports `semanticReuse[]` when a source family appears in multiple clips even if asset IDs differ.
 
 Clip reads/lists expose retime diagnostics when known: `fitToFill`, `frameSafeFitToFill`, `speed`, `sourceDuration`, `programDuration`, `renderedProgramFrames`, `renderedProgramDuration`, `startFrame`, `endFrame`, `endFrameInclusive`, `sourceInFrame`, `sourceOutFrame`, `sourceInPoint`, `sourceOutPoint`, `sourceSpan`, `effectivePlaybackDuration`, and `retimeReason`.
 

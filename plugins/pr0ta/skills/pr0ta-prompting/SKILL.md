@@ -7,7 +7,7 @@ description: "PR0TA visual prompting guide for image/video prompts, prompt bible
 
 This reference covers the art and science of writing effective generation prompts for PR0TA's **visual** AI models (Kling, Seedance, Nano Banana). The core principle: **every prompt must be completely self-contained** -- no assumed context, no pronouns referencing other shots, no "same as before."
 
-> **For TTS and dialogue prompting** (ElevenLabs v3 audio tags, emotion control, pacing, character voices), see `pr0ta-audio` → "Audio Tags & Emotion Control."
+> **For TTS and dialogue prompting**, see `pr0ta-audio` → "Gemini Flash TTS Prompting" first. Use ElevenLabs v3 audio tags only for fallback or legacy ElevenLabs workflows.
 
 ## Why Prompting Matters for Consistency
 

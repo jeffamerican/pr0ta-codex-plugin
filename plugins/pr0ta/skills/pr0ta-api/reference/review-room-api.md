@@ -66,7 +66,16 @@ The public review room supports video-first review:
 - Comment and annotation persistence across reloads
 - Feedback representable as timeline review markers in the PR0TA UI
 
-Coordinates are normalized to the displayed media frame. Time values use seconds from the beginning of the reviewed asset.
+Coordinates are normalized to the displayed media frame. Time values use seconds from the beginning of the reviewed asset. Video annotations also expose frame-native fields for agent repair loops:
+
+- `media_current_time_seconds` — exact HTML/media playback time at note creation.
+- `frame_rate` — review-room frame rate assumption, normally `30`.
+- `frame_index` / `displayed_frame_index` — floor-based decoded/displayed frame index.
+- `rounded_frame_index` and `ceil_frame_index` — alternate derivations for debugging browser/decoder off-by-one cases.
+- `frame_index_policy` — currently `floor`.
+- `timecode` — derived from `frame_index`, e.g. `00:00:21:17`.
+
+Use `displayed_frame_index` / `frame_index` as the repair target. `round(currentTime * fps)` can be one frame later than the actual displayed decoded frame.
 
 ---
 
@@ -191,6 +200,22 @@ PATCH  /api/public/workspace/review-rounds/{share_token}/annotations/{annotation
 DELETE /api/public/workspace/review-rounds/{share_token}/annotations/{annotation_id}
 ```
 
+### Fetch Notes From A Review Link
+
+Given a review URL such as:
+
+```text
+https://app.pr0ta.com/review/XHePabrc7fBxuNT8YyrVZwsOv1km9gIj
+```
+
+the share token is the final path segment. Fetch review notes with:
+
+```http
+GET /api/public/workspace/review-rounds/XHePabrc7fBxuNT8YyrVZwsOv1km9gIj/annotations
+```
+
+Use this public read route for note ingestion from a shared review URL. The authenticated `POST /api/workspace/{project_id}/studio/review-annotations` route is write-oriented and expects body/geometry fields; it is not the correct first call for fetching notes.
+
 Authenticated project routes:
 
 ```http
@@ -201,6 +226,8 @@ DELETE /api/workspace/{project_id}/studio/review-annotations/{annotation_id}
 ```
 
 For authenticated agent work, prefer `get_review_annotations`; it returns annotations plus review events in one payload. Do not invent `/api/workspace/.../annotations` routes.
+
+After creating a replacement review link, verify the review/submission asset ID matches the export asset intended for review. If replacing an old review round, mark old annotations `addressed` when possible and include metadata or a note pointing to the replacement review URL/round.
 
 ### Response
 
