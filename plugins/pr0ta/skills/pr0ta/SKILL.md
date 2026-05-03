@@ -65,13 +65,19 @@ The platform uses a credit-based system. Each generation costs credits depending
 
 **Default path:** Use the PR0TA MCP connector bundled with this plugin. Start with `list_projects`, choose a `project_id`, submit long-running work with `generation_submit` or `generation_batch_submit`, then poll with `tasks_get`. All project-scoped MCP tools require `project_id`.
 
-**Connect canary:** If `tool_search` cannot find `list_projects`, the PR0TA MCP connector is not authenticated in this Codex session yet. Ask the user to connect PR0TA with:
+**Connect canary:** If `tool_search` cannot find `list_projects`, the PR0TA MCP connector is probably not authenticated in this Codex session yet. The agent should initiate the PR0TA OAuth flow itself before asking the user to run manual commands. Prefer the bundled helper when available:
+
+```bash
+plugins/pr0ta/scripts/connect-mcp.sh
+```
+
+If the helper path is not available in the current install, run:
 
 ```bash
 codex mcp login pr0ta --scopes mcp
 ```
 
-Codex should open or print a PR0TA authorization URL. After the browser login completes, restart the Codex session and retry `tool_search` for `list_projects`. Do not treat the missing tools as a PR0TA API outage until this OAuth connect step has been completed.
+Codex should open or print a PR0TA authorization URL. If it prints a URL, present that URL to the user and ask them to complete the browser approval. After the browser login completes, restart the Codex session and retry `tool_search` for `list_projects`. Do not treat the missing tools as a PR0TA API outage until this OAuth connect step has been completed.
 
 **Fallback path:** Use REST/curl only when a route is not exposed through MCP, when writing high-volume automation, or when downloading files from a signed link. Keep `curl` as the asset-download fallback because CDN behavior can differ by HTTP client.
 

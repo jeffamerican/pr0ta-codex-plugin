@@ -36,7 +36,13 @@ Restart or reload Codex after installing so the skills and bundled MCP connector
 
 The plugin declares the PR0TA MCP server in `plugins/pr0ta/.mcp.json`. Codex should load it with the plugin; users still authorize PR0TA through the normal remote MCP/OAuth flow when the client asks.
 
-If PR0TA tools do not appear in Codex yet, connect the MCP server explicitly:
+If PR0TA tools do not appear in Codex yet, Codex can launch the MCP OAuth flow. Ask Codex to connect PR0TA, or run the bundled helper:
+
+```bash
+plugins/pr0ta/scripts/connect-mcp.sh
+```
+
+The helper runs:
 
 ```bash
 codex mcp login pr0ta --scopes mcp
@@ -87,7 +93,7 @@ Then make sure `~/.agents/plugins/marketplace.json` contains:
 ## PR0TA Setup
 
 1. Sign in or create an account at [app.pr0ta.com](https://app.pr0ta.com).
-2. Prefer the bundled PR0TA MCP connector for agent workflows. If Codex does not prompt automatically, run `codex mcp login pr0ta --scopes mcp`.
+2. Prefer the bundled PR0TA MCP connector for agent workflows. If Codex does not prompt automatically, ask Codex to connect PR0TA or run `plugins/pr0ta/scripts/connect-mcp.sh`.
 3. For REST fallback or local stdio workflows, open PR0TA Application Settings, then API Keys.
 4. Create a Personal Access Token and copy it immediately.
 5. Provide the token to Codex for REST fallback workflows, or export it in your shell:

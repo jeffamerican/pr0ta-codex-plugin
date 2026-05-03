@@ -109,13 +109,19 @@ The bundled `.mcp.json` points at production:
 
 After installing or updating the plugin, restart/reload Codex. The user still authorizes PR0TA through the host's normal remote MCP/OAuth flow.
 
-If PR0TA tools are not visible after restart, run the connect canary:
+If PR0TA tools are not visible after restart, the agent should launch the connect canary instead of only telling the user to do it manually:
+
+```bash
+plugins/pr0ta/scripts/connect-mcp.sh
+```
+
+If the helper path is not available in the current install, run:
 
 ```bash
 codex mcp login pr0ta --scopes mcp
 ```
 
-Expected behavior: Codex opens or prints a PR0TA authorization URL. Complete the browser login, restart the Codex session, then check `tool_search` for `list_projects`. If `tool_search` still finds no PR0TA tools after a completed OAuth login, then debug plugin discovery; before login, no project/generation/timeline tools are expected to be callable.
+Expected behavior: Codex opens or prints a PR0TA authorization URL. If it prints the URL, surface that URL to the user and ask them to complete browser approval. Complete the browser login, restart the Codex session, then check `tool_search` for `list_projects`. If `tool_search` still finds no PR0TA tools after a completed OAuth login, then debug plugin discovery; before login, no project/generation/timeline tools are expected to be callable.
 
 ### Local Development Prerequisites
 
