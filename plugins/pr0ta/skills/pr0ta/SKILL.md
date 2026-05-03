@@ -15,56 +15,65 @@ description: "PR0TA orchestration hub for creative media production on app.pr0ta
 The following steps are **non-negotiable** in any multi-asset production. Skipping them has caused production failures in field testing. If you find yourself thinking "I'll skip this to save time," stop — the time saved will be lost many times over in debugging.
 
 1. **Use progressive disclosure.** Read this hub first, then the narrowest companion skill for the next action. Load `pr0ta-api` for auth, raw endpoint contracts, or route details; otherwise prefer the domain skill (`pr0ta-video`, `pr0ta-timeline`, `pr0ta-audio`, etc.) that owns the workflow.
-2. **Assemble on the PR0TA post-production timeline.** The timeline is the supported editing surface for PR0TA productions — it handles Ken Burns rendering, audio ducking, crossfades, dimension normalization, and persistent edit state. The agent edits via the API; the user collaborates via the same timeline in the browser. If the timeline has a gap that blocks a production, file a bug with PR0TA platform engineering so it gets built into the app — that's better for every future production than one-off local workarounds. See `pr0ta-timeline`.
-3. **Every audio-bearing asset must be time-indexed before editing — two paths, no exceptions.** Every asset that carries sound must be passed through the correct time-indexing endpoint before it is eligible for the timeline. There are two paths:
+2. **Use MCP first when available.** The Codex plugin bundles the PR0TA remote MCP connector. Prefer MCP tools (`list_projects`, `generation_submit`, `tasks_get`, `assets_list`, `post_sequence_get`, `post_sequence_save`, `post_render_start`, `narration_timeline_get`, `narration_materialize_to_post`, `review_submit_assets`, etc.) over ad hoc REST/curl calls. Use REST only for routes not exposed through MCP, high-volume scripts, or asset-download fallbacks.
+3. **Assemble on the PR0TA post-production timeline.** The timeline is the supported editing surface for PR0TA productions — it handles Ken Burns rendering, audio ducking, crossfades, dimension normalization, and persistent edit state. The agent edits via the API; the user collaborates via the same timeline in the browser. If the timeline has a gap that blocks a production, file a bug with PR0TA platform engineering so it gets built into the app — that's better for every future production than one-off local workarounds. See `pr0ta-timeline`.
+4. **Every audio-bearing asset must be time-indexed before editing — two paths, no exceptions.** Every asset that carries sound must be passed through the correct time-indexing endpoint before it is eligible for the timeline. There are two paths:
    - **Path A — Speech (TTS narration, dialogue clips, music with vocals, video with dialogue/ambient):** transcribe with Scribe V2 via `POST /api/audio/transcription/start` (`model_id: "fal-ai/elevenlabs/speech-to-text/scribe-v2"`). Output: word-level timing, speaker IDs, speech-adjacent audio events (breath, laughter, applause, speaker_change).
    - **Path B — Instrumental music (score beds, underscore, any asset with no speech):** analyze with `POST /api/v2/projects/{project_id}/music/analyze`. Output: `music_analysis.editorial_anchors`, `downbeat_times`, `beat_times`, `transients[]`, `tempo_bpm`, `beat_confidence`. This is the `whisper_index` analogue for music — Scribe V2 does **not** produce beat or downbeat data and must not be used for this.
    - **Video inputs:** `POST /api/v2/projects/{project_id}/transcribe` now accepts video assets directly — it extracts a derived audio asset and transcribes it in one call. If you want a reusable audio asset for music analysis, downstream editing, or both, call `POST /api/v2/projects/{project_id}/assets/{asset_id}/extract-audio` first and then pass the extracted audio asset into the transcription or music-analyze endpoint.
 
    Assets that have not been time-indexed (transcribed or music-analyzed) are **not available to the editor** — do not add them to the post-production timeline until their indexing task has succeeded. See `pr0ta-audio` → "Mandatory Time-Indexing Rule (Two Paths)".
-4. **Ken Burns is a clip property.** On the timeline, set Ken Burns via preset name (`push_in`, `pull_back`, `drift_left`, etc.) or custom params — the platform handles super-resolution, FPS consistency, and duration-aware formulas internally. You never write a zoompan expression. See `pr0ta-timeline` → "Ken Burns as a Clip Property".
-5. **Verify alignment before final export.** Use `GET /preview?from=&to=&quality=low` to verify key segments — seconds, not minutes. For narration-timeline productions, also call `GET /narration-timeline/verify` before materializing. Do not ship without a verification pass.
-6. **Snapshot before major passes.** On the timeline, create a named snapshot before agent edit passes, user review rounds, or any operation that touches many clips. See `pr0ta-timeline`.
-7. **Maintain `assets.json` from the first generation.** Append to the asset ledger immediately after every successful generation — not in a batch at the end. See "Project Structure & Asset Management" below.
-8. **Run the editorial discipline.** Read `pr0ta-editorial` before any cut. Five-pass rewrite loop, seven ship criteria. A technically assembled cut is not a finished production.
+5. **Ken Burns is a clip property.** On the timeline, set Ken Burns via preset name (`push_in`, `pull_back`, `drift_left`, etc.) or custom params — the platform handles super-resolution, FPS consistency, and duration-aware formulas internally. You never write a zoompan expression. See `pr0ta-timeline` → "Ken Burns as a Clip Property".
+6. **Verify alignment before final export.** Use `GET /preview?from=&to=&quality=low` to verify key segments — seconds, not minutes. For narration-timeline productions, also call `GET /narration-timeline/verify` before materializing. Do not ship without a verification pass.
+7. **Snapshot before major passes.** On the timeline, create a named snapshot before agent edit passes, user review rounds, or any operation that touches many clips. See `pr0ta-timeline`.
+8. **Maintain `assets.json` from the first generation.** Append to the asset ledger immediately after every successful generation — not in a batch at the end. See "Project Structure & Asset Management" below.
+9. **Run the editorial discipline.** Read `pr0ta-editorial` before any cut. Five-pass rewrite loop, seven ship criteria. A technically assembled cut is not a finished production.
 
 ## Quick Start (First-Time Users)
 
-If this is your first PR0TA production: (1) Get your PAT token — see "Before You Begin" below. (2) Read `pr0ta-prompting` to learn the self-contained prompt rule, prompt bible pattern, and Technique 4 (positive framing — video models silently drop `don't` / `no` / `does not` from prose). (3) Try generating a single image with `pr0ta-image` to verify your setup works. (4) When ready for multi-asset work, come back to this hub and follow the full pipeline below.
+If this is your first PR0TA production: (1) Connect the bundled PR0TA MCP connector, or get a PAT token for REST/local stdio fallback — see "Before You Begin" below. (2) Read `pr0ta-prompting` to learn the self-contained prompt rule, prompt bible pattern, and Technique 4 (positive framing — video models silently drop `don't` / `no` / `does not` from prose). (3) Try generating a single image with `pr0ta-image` to verify your setup works. (4) When ready for multi-asset work, come back to this hub and follow the full pipeline below.
 
 ---
 
-PR0TA (app.pr0ta.com) is an AI-powered creative production platform. This skill drives PR0TA through the **unified generation API** (`POST /api/v2/projects/{project_id}/generate`) for image, video, audio, and music generation. Supports text-to-image, image-to-image editing, video generation via **Seedance 2.0 Omni or Kling V3/O3 (co-equal alternatives, both support multi-shot continuity)**, text-to-speech, text-to-music, and transcription (Scribe V2 preferred). Includes persistent consistency resources (Characters for Seedance, Elements for Kling), the post-production timeline API for assembly, and project-scoped event polling for completion detection.
+PR0TA (app.pr0ta.com) is an AI-powered creative production platform. This skill drives PR0TA through the **bundled MCP connector first**, then the REST API for routes that are not exposed through MCP or for high-volume scripting. Supports text-to-image, image-to-image editing, video generation via **Seedance 2.0 Omni or Kling V3/O3 (co-equal alternatives, both support multi-shot continuity)**, text-to-speech, text-to-music, and transcription (Scribe V2 preferred). Includes persistent consistency resources (Characters for Seedance, Elements for Kling), the post-production timeline API for assembly, and project-scoped task polling for completion detection.
 
 The platform uses a credit-based system. Each generation costs credits depending on the model and output parameters.
 
-## API Task Reference
+## Agent Task Reference
 
-| Task | API Route | Notes |
+| Task | Preferred Agent Surface | Notes |
 |------|-----------|-------|
-| Image generation (Nano Banana 2, GPT Image 2) | `POST /generate` | `generator=image`, `mode=txt_to_img` |
-| Image editing (img-to-img, ref-to-img) | `POST /generate` | `mode=img_to_img`, `mode=ref_to_img`, `mode=edit_img` |
-| Video generation (Seedance 2.0 Omni) | `POST /generate` | **Co-equal default.** `mode=txt_to_vid`, character ID, quad-modal refs |
-| Video generation (Kling O3/V3 multi-shot) | `POST /generate` | **Co-equal default.** `prompt_mode: multi_prompt`, up to 5-6 cuts per generation, Elements, camera control |
-| Audio generation (Gemini Flash TTS) | `POST /generate` | `generator=audio`, `mode=txt_to_speech`; ElevenLabs v3 fallback |
-| Music generation (ElevenLabs Music) | `POST /generate` | `generator=music`, `mode=txt_to_music` |
-| Element/Character management | CRUD endpoints | Persistent project-scoped consistency resources |
-| Timeline editing | Clip CRUD API | Agent edits via API; user collaborates via the same timeline in the browser |
-| Downloading assets | `GET /assets/{id}/download` | Public endpoint, no auth needed |
-| Project management | `GET/POST /projects` | List, create, select projects |
-| Model discovery | `GET /api/v2/models` | No auth required |
+| Image generation (Nano Banana 2, GPT Image 2) | `generation_submit` | `generator=image`, `mode=txt_to_img` |
+| Image editing (img-to-img, ref-to-img) | `generation_submit` | `mode=img_to_img`, `mode=ref_to_img`, `mode=edit_img` |
+| Video generation (Seedance 2.0 Omni) | `generation_submit` | **Co-equal default.** `mode=txt_to_vid`, character ID, quad-modal refs |
+| Video generation (Kling O3/V3 multi-shot) | `generation_submit` | **Co-equal default.** `prompt_mode: multi_prompt`, up to 5-6 cuts per generation, Elements, camera control |
+| Audio generation (Gemini Flash TTS) | `generation_submit` | `generator=audio`, `mode=txt_to_speech`; ElevenLabs v3 fallback |
+| Music generation (ElevenLabs Music) | `generation_submit` | `generator=music`, `mode=txt_to_music` |
+| Task polling/cancel | `tasks_get`, `tasks_cancel` | Submit tools return task IDs, not finished assets |
+| Asset list/upload/download links | `assets_list`, `assets_upload_start`, `assets_get_download_link` | Download bytes with normal HTTP/curl from returned link |
+| Element/Character management | REST CRUD endpoints | Persistent project-scoped consistency resources |
+| Timeline editing | `post_sequence_get`, `post_sequence_save` | Agent edits via MCP; user collaborates via the same timeline in the browser |
+| Timeline render | `post_render_start` | Returns a render task ID |
+| Narration materialization | `narration_timeline_get`, `narration_materialize_to_post` | Build/verify narration cuts, then materialize |
+| Client review | `review_submit_assets` | Submit assets and get a review link |
+| Project discovery | `list_projects` | Use before project-scoped MCP calls |
+| Model discovery | `models_list`, `models_get_defaults` | Query live availability and schemas |
 
 ## Before You Begin
 
-### For API Workflows
+### For MCP and API Workflows
 
-**Step 0 — Get a PAT token (critical).** The API works dramatically better with a Personal Access Token. Before doing anything else, check if the user has a PAT available (it starts with `pat_`). If they don't have one:
+**Default path:** Use the PR0TA MCP connector bundled with this plugin. Start with `list_projects`, choose a `project_id`, submit long-running work with `generation_submit` or `generation_batch_submit`, then poll with `tasks_get`. All project-scoped MCP tools require `project_id`.
 
-1. **Ask the user** if they have a PR0TA API token. Explain that a PAT is required for reliable API workflows.
+**Fallback path:** Use REST/curl only when a route is not exposed through MCP, when writing high-volume automation, or when downloading files from a signed link. Keep `curl` as the asset-download fallback because CDN behavior can differ by HTTP client.
+
+**Step 0 — Auth.** Remote MCP clients use the host's PR0TA OAuth flow. For REST fallback or local stdio MCP, use a Personal Access Token (PAT). Before REST/local stdio work, check if the user has a PAT available (it starts with `pat_`). If they don't have one:
+
+1. **Ask the user** if they have a PR0TA API token. Explain that a PAT is required for reliable REST fallback or local stdio workflows.
 2. **If they don't know how to get one**, tell the user: *"Go to app.pr0ta.com → Settings → General → API Keys → Generate New Key. Copy the token (starts with `pat_`) and paste it here. It's only shown once."*
 3. **Store the PAT** in an environment variable for the session: `export PR0TA_PAT="pat_xxxxxxxxxxxxx"`
 
-**Do not proceed with API workflows without a PAT.** JWT extraction from browser localStorage is a fragile fallback — always prefer a PAT.
+**Do not proceed with REST fallback workflows without a PAT.** JWT extraction from browser localStorage is a fragile fallback — always prefer a PAT. Remote MCP OAuth does not require a PAT pasted into the chat.
 
 **Sub-agent delegation:** If you dispatch sub-agents (parallel tasks) for generation work, **pass the PAT via the environment variable** (`$PR0TA_PAT`), not inline in the prompt. Inline tokens in prompts may trigger security refusals. The environment variable is inherited by sub-agents and avoids this issue.
 

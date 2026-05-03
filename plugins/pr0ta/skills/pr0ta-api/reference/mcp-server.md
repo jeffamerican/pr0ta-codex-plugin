@@ -7,7 +7,7 @@
 The PR0TA Agent Tool system provides a unified tool layer that serves two purposes:
 
 1. **Internal agents** (Editor, Storyboarder, Director, etc.) use Gemini function calling to dynamically query project data on demand.
-2. **External tools** (Claude Code, Cursor, ChatGPT, Claude connectors, etc.) connect via an MCP server to query and interact with PR0TA project data.
+2. **External tools** (Codex, Claude Code, Cursor, ChatGPT, Claude connectors, etc.) connect via an MCP server to query and interact with PR0TA project data.
 
 Both share a single provider-agnostic tool registry — each tool is defined once and consumed everywhere.
 
@@ -15,7 +15,27 @@ Both share a single provider-agnostic tool registry — each tool is defined onc
 
 ## Available MCP Tools
 
-### Project-Scoped Tools (require `project_id`)
+### Agent-Complete Tools (require `project_id` unless noted)
+
+| Tool | Description | Key Parameters |
+|------|-------------|----------------|
+| `generation_submit` | Submit one image, video, audio, or music generation request | `project_id`, `request` |
+| `generation_batch_submit` | Submit multiple generation requests in one call | `project_id`, `requests` |
+| `tasks_get` | Poll canonical task state and result | `project_id`, `task_id` |
+| `tasks_cancel` | Cancel a queued/running task | `project_id`, `task_id` |
+| `assets_list` | List project assets with simple filters and pagination | `project_id`, `kind`, `task_id`, `limit`, `offset` |
+| `assets_upload_start` | Create an upload intent/registration handoff for files | `project_id`, `filename`, `content_type`, `size_bytes` |
+| `assets_get_download_link` | Return a download URL for an asset | `project_id`, `asset_id` |
+| `post_sequence_get` | Load the saved post-production sequence/timeline | `project_id`, `sequence_id` (optional) |
+| `post_sequence_save` | Save a post-production sequence/timeline payload | `project_id`, `timeline`, `sequence_id` (optional) |
+| `post_render_start` | Start a post-production render task | `project_id`, `sequence_id`, `from`, `to`, `resolution` |
+| `narration_timeline_get` | Load narration-timeline state | `project_id` |
+| `narration_materialize_to_post` | Materialize narration cuts into post-production | `project_id`, `sequence_name`, `replace` |
+| `review_submit_assets` | Publish project assets to a client review room | `project_id`, `asset_ids`, `title`, `description`, `review_notes`, `allow_download`, `webhook_url`, `webhook_secret` |
+| `models_list` | List available models and filter by modality | `generator`, `mode`, `image_kind` |
+| `models_get_defaults` | Get model parameter defaults/schema | `model_id` |
+
+### Project Intelligence and Legacy Review Tools
 
 | Tool | Description | Key Parameters |
 |------|-------------|----------------|
@@ -26,15 +46,23 @@ Both share a single provider-agnostic tool registry — each tool is defined onc
 | `get_shot_assets` | Video/audio takes, storyboard frames for a shot | `scene_number` (required), `shot_number` (required) |
 | `get_screenplay_text` | Preprocessed screenplay text for specific scene(s) | `scene_number` (optional — omit for full screenplay) |
 | `enable_studio_mode` | Enable Studio mode so review-room tools can create submissions, rounds, and share links | (none) |
-| `submit_assets_for_review` | Publish assets to a public client review room | `asset_ids` (required); `title`, `description`, `review_notes`, `allow_download`, `webhook_url`, `webhook_secret` (optional) |
+| `submit_assets_for_review` | Legacy alias for review-room submission | `asset_ids` (required); `title`, `description`, `review_notes`, `allow_download`, `webhook_url`, `webhook_secret` (optional) |
 | `get_review_annotations` | Retrieve review comments, annotations, and decisions | `review_round_id`, `submission_id`, `resolution_status` (optional) |
 
-### MCP-Only Tools (not available to internal agents)
+### Discovery Tools
 
 | Tool | Description | Parameters |
 |------|-------------|------------|
 | `list_projects` | List all available PR0TA projects | (none) |
 | `get_project_metadata` | Project summary: logline, genre, tone, cast, visual approach | `project_id` (required) |
+
+### Compatibility Rules
+
+- Tool names use underscores, not dotted names.
+- Every project-scoped tool requires `project_id`.
+- Long-running work returns task IDs. Poll with `tasks_get`; submit tools never imply completion.
+- Errors are structured with `error`, `error_reason`, `error_detail`, validation messages, and retry/fail-fast hints when available.
+- File bytes are handed off through upload/download intents and links, not embedded in MCP payloads.
 
 ### Role-Tool Access Matrix
 
@@ -55,7 +83,30 @@ Not all roles have access to all tools. The registry enforces access per role.
 
 ## MCP Server Setup
 
-### Prerequisites
+### Codex Plugin Setup
+
+The PR0TA Codex plugin bundles the remote MCP connector. The plugin manifest contains:
+
+```json
+{
+  "mcpServers": "./.mcp.json"
+}
+```
+
+The bundled `.mcp.json` points at production:
+
+```json
+{
+  "pr0ta": {
+    "type": "http",
+    "url": "https://app.pr0ta.com/api/mcp/mcp"
+  }
+}
+```
+
+After installing or updating the plugin, restart/reload Codex. The user still authorizes PR0TA through the host's normal remote MCP/OAuth flow.
+
+### Local Development Prerequisites
 
 ```bash
 pip install mcp
@@ -82,7 +133,7 @@ python mcp_server.py --sse
 python mcp_server.py --streamable-http
 ```
 
-### Claude Code Configuration
+### Claude Code Configuration (Local Stdio Fallback)
 
 Add the PR0TA MCP server to `.claude/mcp.json` at the project root:
 
@@ -112,7 +163,7 @@ With a virtual environment:
 }
 ```
 
-### Cursor Configuration
+### Cursor Configuration (Local Stdio Fallback)
 
 **Project-level (recommended)** — `.cursor/mcp.json` in the repo root:
 
@@ -134,7 +185,7 @@ Point `command` at your venv Python if using one. Restart Cursor after changing 
 
 ## Remote MCP Connectors (OAuth)
 
-PR0TA exposes a remote MCP surface for ChatGPT and Claude-style connectors.
+PR0TA exposes a remote MCP surface for Codex, ChatGPT, Claude-style connectors, Cursor-style clients, and other MCP hosts.
 
 ### Production URLs
 
@@ -159,7 +210,7 @@ PR0TA exposes a remote MCP surface for ChatGPT and Claude-style connectors.
 1. Add a custom MCP connector with URL `https://app.pr0ta.com/api/mcp/mcp`.
 2. Complete the PR0TA OAuth authorization flow.
 
-For Claude Code local development, prefer the stdio setup above.
+For Claude Code local development, prefer the stdio setup above. For normal agent use, prefer the remote connector.
 
 ### Local vs Remote Auth
 

@@ -1,9 +1,10 @@
 # PR0TA Codex Plugin
 
-Codex plugin for PR0TA creative production workflows. It packages 12 PR0TA skills that help Codex generate images, videos, voiceovers, music, and sound effects, then assemble, review, download, and refine PR0TA timelines.
+Codex plugin for PR0TA creative production workflows. It packages 12 PR0TA skills plus the PR0TA remote MCP connector so Codex can generate images, videos, voiceovers, music, and sound effects, then assemble, review, download, and refine PR0TA timelines.
 
 ## What's Included
 
+- Bundled MCP connector: `https://app.pr0ta.com/api/mcp/mcp`
 - `pr0ta` -- production hub and workflow orchestration.
 - `pr0ta-api` -- API auth, `/generate`, tasks, assets, review rooms, MCP, and client references.
 - `pr0ta-video` -- Seedance, Kling, multi-shot continuity, camera control, and reference video.
@@ -31,7 +32,9 @@ Then install the PR0TA plugin:
 /plugin install pr0ta@pr0ta-codex
 ```
 
-Restart or reload Codex after installing so the skills are discovered.
+Restart or reload Codex after installing so the skills and bundled MCP connector are discovered.
+
+The plugin declares the PR0TA MCP server in `plugins/pr0ta/.mcp.json`. Codex should load it with the plugin; users still authorize PR0TA through the normal remote MCP/OAuth flow when the client asks.
 
 ## Local Development Install
 
@@ -76,9 +79,10 @@ Then make sure `~/.agents/plugins/marketplace.json` contains:
 ## PR0TA Setup
 
 1. Sign in or create an account at [app.pr0ta.com](https://app.pr0ta.com).
-2. Open PR0TA Application Settings, then API Keys.
-3. Create a Personal Access Token and copy it immediately.
-4. Provide the token to Codex for API workflows, or export it in your shell:
+2. Prefer the bundled PR0TA MCP connector for agent workflows.
+3. For REST fallback or local stdio workflows, open PR0TA Application Settings, then API Keys.
+4. Create a Personal Access Token and copy it immediately.
+5. Provide the token to Codex for REST fallback workflows, or export it in your shell:
 
 ```bash
 export PR0TA_PAT=pat_xxxxxxxxxxxxxxxx
@@ -91,6 +95,7 @@ Do not commit PATs, OAuth tokens, `.env` files, project data, or local credentia
 ```text
 .agents/plugins/marketplace.json
 plugins/pr0ta/.codex-plugin/plugin.json
+plugins/pr0ta/.mcp.json
 plugins/pr0ta/skills/pr0ta/SKILL.md
 plugins/pr0ta/skills/pr0ta-api/SKILL.md
 plugins/pr0ta/skills/pr0ta-video/SKILL.md

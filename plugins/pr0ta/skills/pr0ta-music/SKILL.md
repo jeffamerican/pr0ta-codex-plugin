@@ -16,9 +16,27 @@ The Music Generator uses **ElevenLabs Music** to compose original music tracks, 
 
 The distinction matters because scores need emotional arc descriptions and duration planning, while SFX need precise sound-design language and short durations.
 
-## API Quick Reference
+## MCP Quick Reference
 
-Music and sound effect generation uses the unified generation endpoint:
+Prefer the bundled PR0TA MCP connector for agent workflows. Submit with `generation_submit`, then poll with `tasks_get`.
+
+```json
+{
+  "project_id": "project-uuid-or-slug",
+  "request": {
+    "generator": "music",
+    "mode": "txt_to_music",
+    "model_id": "elevenlabs/music",
+    "prompt": "Tense orchestral underscore with low cello drones and sparse pizzicato strings, building slowly over 45 seconds to a crescendo with timpani rolls",
+    "duration": 45,
+    "output_format": "mp3_44100_192"
+  }
+}
+```
+
+## REST Fallback
+
+Use REST/curl only when MCP is unavailable, for high-volume scripts, or for endpoints not yet exposed through MCP. Music and sound effect generation uses the unified generation endpoint:
 
 ```bash
 curl -X POST "https://app.pr0ta.com/api/v2/projects/{project_id}/generate" \

@@ -7,9 +7,24 @@ description: "PR0TA asset download/export guide. Read when downloading generated
 
 > **See also:** The `pr0ta-api` skill's reliability contract (`reference/reliability-contract.md`) covers the full download fallback chain — including the `storage_uri` video workaround, asset correlation rules, and the 0-byte detection pattern that this skill's API download section implements.
 
-Download assets from PR0TA using the API.
+Download assets from PR0TA using MCP link handoff, then `curl` for bytes. Use REST fallback when MCP is unavailable.
 
-## API Download
+## MCP Download Link Handoff
+
+Prefer `assets_get_download_link` when the PR0TA MCP connector is available:
+
+```json
+{
+  "project_id": "project-uuid-or-slug",
+  "asset_id": "asset-uuid"
+}
+```
+
+The tool returns a URL or route for the asset. Download the bytes with `curl -sSL --fail -o <path> <url>` and validate the file is non-empty.
+
+Use `assets_list` to discover assets when you do not already have the ID.
+
+## REST Download Fallback
 
 PR0TA exposes a public download endpoint that does NOT require authentication. This is the standard download method when you have an asset ID.
 

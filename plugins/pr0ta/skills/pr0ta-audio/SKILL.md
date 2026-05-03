@@ -69,7 +69,7 @@ Use this path for any asset that is **instrumental music with no speech**:
 > - **Narration over footage (any language):** Use PR0TA TTS — gives you precise voice/language/pacing control independent of the video.
 > - **English dialogue with visible speaker:** Use native video audio (`sound: "on"` in the video generation) for lip sync — see the `pr0ta-video` skill.
 
-**API option available:** Text-to-speech generation can be done entirely via API using `POST /api/v2/projects/{project_id}/generate` with `generator=audio`, `mode=txt_to_speech`. The default TTS model is **Gemini 3.1 Flash TTS** (`fal-ai/gemini-3.1-flash-tts`). Use **ElevenLabs v3** (`eleven_v3`) as the fallback when Gemini is unavailable, when the user requires a specific ElevenLabs `voice_id`, or when an existing workflow depends on Eleven v3 audio tags. Gemini supports `style_instructions`, multi-speaker via `speakers`, `language_code`, and `temperature`. Use `GET /api/crew/model_defaults?model_id=fal-ai/gemini-3.1-flash-tts` for the full parameter list. See the `pr0ta-api` skill for the full request schema.
+**Agent option available:** Text-to-speech generation can be done through MCP `generation_submit` with `generator=audio`, `mode=txt_to_speech`. REST `POST /api/v2/projects/{project_id}/generate` remains the fallback for scripts and endpoints not exposed through MCP. The default TTS model is **Gemini 3.1 Flash TTS** (`fal-ai/gemini-3.1-flash-tts`). Use **ElevenLabs v3** (`eleven_v3`) as the fallback when Gemini is unavailable, when the user requires a specific ElevenLabs `voice_id`, or when an existing workflow depends on Eleven v3 audio tags. Gemini supports `style_instructions`, multi-speaker via `speakers`, `language_code`, and `temperature`. Use `models_get_defaults` or `GET /api/crew/model_defaults?model_id=fal-ai/gemini-3.1-flash-tts` for the full parameter list. See the `pr0ta-api` skill for the full request schema.
 
 ## Modes
 
@@ -180,9 +180,30 @@ Use ElevenLabs v3 audio tags only when the user selects the ElevenLabs fallback 
 
 For the full ElevenLabs tag catalog, examples, punctuation behavior, and constraints, read `reference/elevenlabs-v3-audio-tags.md`.
 
-## API TTS Generation (Quick Reference)
+## MCP TTS Generation (Quick Reference)
 
-The full schema is in `pr0ta-api`, but here's the complete pattern for generating speech via API:
+The full schema is in `pr0ta-api`, but here's the pattern for generating speech through MCP:
+
+```json
+{
+  "project_id": "project-uuid-or-slug",
+  "request": {
+    "generator": "audio",
+    "mode": "txt_to_speech",
+    "model": "fal-ai/gemini-3.1-flash-tts",
+    "text": "AUDIO PROFILE\nWarm documentary narrator, close-mic studio recording, natural conversational delivery.\n\nSCENE\nA 30-second social-video voiceover for a curious general audience.\n\nDIRECTOR NOTES\nPace around 145 words per minute. Pause briefly after the opening sentence. Lightly emphasize the named concepts.\n\nTRANSCRIPT\nThe city had changed since I last saw it, but then again, so had I.",
+    "voice": "Kore",
+    "style_instructions": "Warm, reflective, measured, never announcer-like.",
+    "language_code": "en-US"
+  }
+}
+```
+
+Poll the returned task with `tasks_get`.
+
+## REST TTS Generation (Fallback)
+
+Use REST/curl only when MCP is unavailable, for high-volume scripts, or for endpoints not yet exposed through MCP.
 
 ```bash
 # 1. Generate speech with Gemini Flash TTS

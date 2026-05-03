@@ -6,7 +6,7 @@
 
 Skills users can submit one or more project assets to a PR0TA client review room without using the web UI. PR0TA returns a public review link that can be sent to a reviewer. After the reviewer adds comments, time-coded notes, annotations, or approval/change-request decisions, the skills user retrieves that feedback through the MCP tool surface or REST API.
 
-This workflow is exposed through **PR0TA agent/MCP tools** (`enable_studio_mode`, `submit_assets_for_review`, `get_review_annotations`). The review tools are available to `editor`, `director`, `producer`, and `script_supervisor` roles.
+This workflow is exposed through **PR0TA agent/MCP tools** (`enable_studio_mode`, `review_submit_assets`, `submit_assets_for_review`, `get_review_annotations`). Prefer `review_submit_assets` in MCP clients; `submit_assets_for_review` is retained as a legacy alias. The review tools are available to `editor`, `director`, `producer`, and `script_supervisor` roles.
 
 When ingesting review annotations for a timeline edit, generate a shot replacement checklist before making changes. Each open timestamped note should be keyed by:
 
@@ -79,9 +79,11 @@ Use `displayed_frame_index` / `frame_index` as the repair target. `round(current
 
 ---
 
-## Tool: `submit_assets_for_review`
+## Tool: `review_submit_assets`
 
 Creates or reuses studio submissions for the supplied assets, publishes them to a public client review room, creates a share link, and returns the share URL.
+
+`submit_assets_for_review` accepts the same arguments and remains available as a legacy alias.
 
 ### Required Access
 

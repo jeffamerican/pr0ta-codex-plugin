@@ -96,9 +96,30 @@ For the full, authoritative per-provider field contract see `reference/video-ref
 
 **Do not pivot silently.** If the original shot has continuity constraints (locked character, matched motion, specific camera move), confirm with the user before switching providers — the pivot target may produce a visually different take even with the same inputs, and surfacing that is cheaper than shipping an inconsistency.
 
-### API Quick Reference — Complete Video Generation Examples
+### MCP Quick Reference
 
-**Copy-paste ready.** For the full parameter reference, see `pr0ta-api`.
+Prefer the bundled PR0TA MCP connector for agent workflows. Submit with `generation_submit`, then poll with `tasks_get`.
+
+```json
+{
+  "project_id": "project-uuid-or-slug",
+  "request": {
+    "generator": "video",
+    "mode": "ref_to_vid",
+    "model": "kling_o3_pro",
+    "prompt": "@Image1 -- camera slowly pulls back to reveal the full scene.",
+    "start_image_asset_id": "uuid-of-uploaded-image",
+    "duration": 5,
+    "aspect_ratio": "16:9",
+    "sound": "off",
+    "cfg": 0.5
+  }
+}
+```
+
+### REST Fallback — Complete Video Generation Examples
+
+Use REST/curl only when MCP is unavailable, for high-volume scripts, or for endpoints not yet exposed through MCP. For the full parameter reference, see `pr0ta-api`.
 
 ```bash
 # Seedance 2.0 T2V text-to-video

@@ -1,19 +1,44 @@
 ---
 name: pr0ta-api
-description: "PR0TA REST API reference for auth, raw endpoint schemas, task polling, assets, model discovery, timeline/debug APIs, review-room APIs, and MCP setup. Read when a domain skill does not include the exact route contract or when debugging API failures."
+description: "PR0TA MCP and REST API reference for auth, agent tool calls, raw endpoint schemas, task polling, assets, model discovery, timeline/debug APIs, review-room APIs, and MCP setup. Read when a domain skill does not include the exact route contract or when debugging API failures."
 ---
 
 # PR0TA API Reference
 
-This reference covers the PR0TA REST API endpoints available for programmatic access.
+This reference covers the PR0TA MCP tool surface and REST API endpoints available for programmatic access.
+
+## Agent Execution Default: MCP First
+
+The Codex plugin bundles the PR0TA remote MCP connector in `plugins/pr0ta/.mcp.json`:
+
+```json
+{
+  "pr0ta": {
+    "type": "http",
+    "url": "https://app.pr0ta.com/api/mcp/mcp"
+  }
+}
+```
+
+For agent workflows, prefer MCP tools over ad hoc REST/curl calls whenever an MCP tool exists. Use REST for routes not yet exposed through MCP, high-volume scripts, and direct file downloads from MCP-provided links.
+
+**MCP call pattern:**
+
+1. Call `list_projects`.
+2. Pass `project_id` to every project-scoped tool.
+3. Submit long-running work with `generation_submit` or `generation_batch_submit`.
+4. Poll with `tasks_get`; cancel stuck work with `tasks_cancel`.
+5. Resolve assets with `assets_list` or `assets_get_download_link`.
+
+Submit tools return task IDs, not completed media. Treat `tasks_get` as the canonical state and result contract.
 
 ## Authentication
 
 PR0TA supports two authentication methods:
 
-### Personal Access Tokens (Required)
+### Personal Access Tokens (REST and Local Stdio Fallback)
 
-**A PAT is required for reliable API workflows.** PATs are long-lived tokens that don't require email/password. Always ensure you have a PAT before starting any API work.
+Remote MCP clients use PR0TA OAuth through the host connector. A PAT is required for reliable REST fallback workflows and local stdio MCP workflows. PATs are long-lived tokens that don't require email/password. Always ensure you have a PAT before starting REST/local stdio work.
 
 **If the user doesn't have a PAT, help them create one:**
 
@@ -25,7 +50,7 @@ PR0TA supports two authentication methods:
    - Name it (e.g., "Codex plugin") and copy the token immediately
    - **The token is only shown once** — if they miss it, they need to generate a new one
 
-**Using a PAT:**
+**Using a PAT for REST/local stdio fallback:**
 ```bash
 curl -H "Authorization: Bearer pat_xxxxxxxxxxxxx" https://app.pr0ta.com/api/v2/projects
 ```
@@ -106,9 +131,9 @@ BASE_URL="https://app.pr0ta.com"
 
 ---
 
-## Minimal Python Client (Copy-Paste Ready)
+## Minimal Python Client (REST Fallback)
 
-The complete Python client with all 5 core functions (`upload_images`, `submit_generation`, `poll_task`, `download_asset`, `list_assets`) plus a fan-out example is at **`reference/python-client.py`**. Copy it into your project as `pr0ta_client.py` and run it.
+Prefer MCP for agent work. The complete Python REST fallback client with all 5 core functions (`upload_images`, `submit_generation`, `poll_task`, `download_asset`, `list_assets`) plus a fan-out example is at **`reference/python-client.py`**. Copy it into your project as `pr0ta_client.py` and run it when you need standalone scripting.
 
 It bakes in the Cloudflare-safe download path (`curl` via subprocess — `urllib` is 403'd by Cloudflare), the PAT bearer pattern, the structured validation-error contract for unified v2, async provider error surfacing (`error_detail`), and paginated asset listing. Every gotcha in the skill pack that costs debug time is handled on the first copy-paste.
 
@@ -138,9 +163,28 @@ Essential facts for any call:
 
 For actual request/response shapes and worked examples, Read the reference file.
 
-## Unified Generation API — Reference
+## Unified Generation API and MCP Generation Tools — Reference
 
-The primary way to trigger all generation programmatically: a single `POST /api/v2/projects/{project_id}/generate` endpoint that dispatches to the image, video, audio, or music stack and returns a task ID.
+The primary agent path is the MCP `generation_submit` tool. The REST fallback is `POST /api/v2/projects/{project_id}/generate`. Both dispatch to the image, video, audio, or music stack and return a task ID.
+
+**MCP `generation_submit` input:**
+
+```json
+{
+  "project_id": "project-uuid-or-slug",
+  "request": {
+    "generator": "image",
+    "mode": "txt_to_img",
+    "model": "nano_banana_2",
+    "prompt": "Dark navy infographic showing global market growth, gold accent text, clean vector style.",
+    "width": 1920,
+    "height": 1080,
+    "format": "jpeg"
+  }
+}
+```
+
+Poll the returned task with `tasks_get`.
 
 **Essential facts:**
 - **`generator` is required on every request.** Sending only `model` and `mode` fails validation. Valid generators: `image`, `video`, `audio`, `music`.
@@ -157,7 +201,7 @@ The primary way to trigger all generation programmatically: a single `POST /api/
 
 ## Batch Generation and Event Queue — Reference
 
-For the full endpoint specs covering **batch generation** (`POST /api/v2/projects/{id}/generate/batch`, n-way fan-out, batch status) and the **generation event queue** (`GET /events?generator=<type>`, server-sent-event semantics, completion signaling, known gaps), **Read `reference/batch-and-events.md`** (sibling file in this skill directory).
+For the full endpoint specs covering **batch generation** (`generation_batch_submit` or REST `POST /api/v2/projects/{id}/generate/batch`, n-way fan-out, batch status) and the **generation event queue** (`GET /events?generator=<type>`, server-sent-event semantics, completion signaling, known gaps), **Read `reference/batch-and-events.md`** (sibling file in this skill directory).
 
 Essential facts:
 
@@ -173,7 +217,13 @@ For the full request/response shapes, Read the reference file.
 
 **Task polling is the primary completion signal.** Always poll a submitted task to terminal state — a 200 from `POST /generate` only means queued, not succeeded. Async provider errors (insufficient credits, model unavailable, provider timeout) surface only at terminal status.
 
-**Endpoints** (project-scoped preferred):
+**MCP tools:**
+```
+tasks_get
+tasks_cancel
+```
+
+**REST endpoints** (project-scoped preferred):
 ```
 GET  /api/v2/projects/{project_id}/tasks/{task_id}         ← preferred
 POST /api/v2/projects/{project_id}/tasks/{task_id}/cancel  ← preferred
@@ -198,7 +248,7 @@ POST /api/v2/projects/{project_id}/tasks/{task_id}/cancel  ← preferred
 
 ## Asset Management and Batch Workflow — Reference
 
-For the full endpoint specs covering **asset management** (listing with `offset`/`limit` pagination, filtering by kind/task_id/tag, asset metadata including `storage_uri`, deletion, tagging) and the **canonical batch workflow pattern** (submit → poll → collect → download → ledger), **Read `reference/asset-management.md`** (sibling file in this skill directory).
+For the full endpoint specs covering **asset management** (`assets_list`, `assets_upload_start`, `assets_get_download_link`; REST listing with `offset`/`limit` pagination, filtering by kind/task_id/tag, asset metadata including `storage_uri`, deletion, tagging) and the **canonical batch workflow pattern** (submit → poll → collect → download → ledger), **Read `reference/asset-management.md`** (sibling file in this skill directory).
 
 **Asset listing pagination:** `GET /api/v2/projects/{id}/assets` supports `offset`/`limit` pagination. Response includes `total` (total matching assets) and `next_offset` (for the next page, or `null` if no more). Default limit applies server-side; always check `next_offset` to paginate through large asset sets.
 
@@ -284,14 +334,14 @@ Essential facts:
 
 ## Client Review Room API — Reference
 
-PR0TA exposes a client review workflow through three MCP/agent tools: **`enable_studio_mode`**, **`submit_assets_for_review`**, and **`get_review_annotations`**. Enable Studio mode on a project (required before first review), submit one or more project assets to a public review room, share the review URL with a client, and retrieve timestamped comments, visual annotations (pin, region, drawing), and approval/change-request decisions programmatically.
+PR0TA exposes a client review workflow through MCP/agent tools: **`enable_studio_mode`**, **`review_submit_assets`** (preferred MCP alias), **`submit_assets_for_review`** (legacy alias), and **`get_review_annotations`**. Enable Studio mode on a project (required before first review), submit one or more project assets to a public review room, share the review URL with a client, and retrieve timestamped comments, visual annotations (pin, region, drawing), and approval/change-request decisions programmatically.
 
 **For the full tool contracts** (arguments, response shapes, webhook payload, integration pattern, annotation types, resolution filtering), **Read `reference/review-room-api.md`**.
 
 Essential facts:
 
 - **`enable_studio_mode`** must be called before first review-room creation. Enables Studio mode on the project. REST equivalent: `PATCH /api/v2/projects/{project_id}/studio`.
-- **`submit_assets_for_review`** creates a public review room and returns a `review_url` the reviewer opens in a browser — no PR0TA account required. Response includes `submissions[]` (per-asset status) and `review_round{}` (round metadata with share links).
+- **`review_submit_assets`** creates a public review room and returns a `review_url` the reviewer opens in a browser — no PR0TA account required. Response includes `submissions[]` (per-asset status) and `review_round{}` (round metadata with share links). `submit_assets_for_review` remains a legacy alias.
 - **`get_review_annotations`** retrieves all feedback: annotations with `annotation_type` (pin, region, drawing), time codes (`start_time_seconds`), normalized frame coordinates (`geometry`), and review events (`comment`, `approved`, `approved_with_notes`, `changes_requested`).
 - **Fetch notes from a public review link** — parse the share token from the review URL and call `GET /api/public/workspace/review-rounds/{share_token}/annotations`. Use this read route for note ingestion; authenticated write-oriented annotation routes require body/geometry fields and are not the right first call.
 - **Verify review asset identity** — after creating a review link, confirm the submitted/review asset ID is the export asset you intended to show.
@@ -301,17 +351,18 @@ Essential facts:
 
 ## MCP Server & Agent Tools — Reference
 
-PR0TA provides an MCP server that exposes project-scoped tools to external agents (Claude Code, Cursor, ChatGPT, Claude connectors). The same tool registry also powers internal Gemini-backed agents (Editor, Director, Storyboarder, etc.).
+PR0TA provides an MCP server that exposes project-scoped tools to external agents (Codex, Claude Code, Cursor, ChatGPT, Claude connectors). The same tool registry also powers internal Gemini-backed agents (Editor, Director, Storyboarder, etc.).
 
 **For the full MCP server setup** (stdio/SSE/HTTP transports, Claude Code and Cursor configuration, remote OAuth connectors, available tools table, role-tool access matrix, internal agent integration, adding new tools, troubleshooting), **Read `reference/mcp-server.md`**.
 
 Essential facts:
 
-- **Local setup:** `python mcp_server.py` (stdio transport). Configure in `.claude/mcp.json` (Claude Code) or `.cursor/mcp.json` (Cursor).
-- **Remote connectors:** `https://app.pr0ta.com/api/mcp/mcp` with PR0TA OAuth. Works with ChatGPT and Claude remote MCP connectors.
+- **Codex setup:** bundled by this plugin through `.codex-plugin/plugin.json` → `mcpServers: "./.mcp.json"`.
+- **Remote connectors:** `https://app.pr0ta.com/api/mcp/mcp` with PR0TA OAuth. Works with Codex, ChatGPT, Claude, and Cursor-style remote MCP clients when the host supports remote MCP.
+- **Local setup:** `python mcp_server.py` (stdio transport). Configure in `.claude/mcp.json` (Claude Code) or `.cursor/mcp.json` (Cursor) only for repo-local development.
 - **Auth:** Local clients use `PR0TA_MCP_ACCESS_TOKEN` env var or per-call `access_token`. Remote connectors use OAuth bearer.
 - **All MCP tools except `list_projects` require `project_id`.** Use `list_projects` first to discover available projects.
-- **Available tools:** `get_scene_breakdown`, `get_scene_shotlist`, `get_character_references`, `get_set_references`, `get_shot_assets`, `get_screenplay_text`, `enable_studio_mode`, `submit_assets_for_review`, `get_review_annotations`, plus MCP-only `list_projects` and `get_project_metadata`.
+- **Available tools:** `list_projects`, `get_project_metadata`, `generation_submit`, `generation_batch_submit`, `tasks_get`, `tasks_cancel`, `assets_list`, `assets_upload_start`, `assets_get_download_link`, `post_sequence_get`, `post_sequence_save`, `post_render_start`, `narration_timeline_get`, `narration_materialize_to_post`, `review_submit_assets`, `models_list`, `models_get_defaults`, plus legacy project-intelligence and review tools such as `get_scene_breakdown`, `get_scene_shotlist`, `get_character_references`, `get_set_references`, `get_shot_assets`, `get_screenplay_text`, `enable_studio_mode`, `submit_assets_for_review`, and `get_review_annotations`.
 
 ---
 

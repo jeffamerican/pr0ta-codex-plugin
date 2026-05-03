@@ -27,9 +27,28 @@ For most reference images, key frames, and production stills — **default to Na
 
 **⚠️ Nano Banana 2 outputs native resolution (~768px wide), not the requested pixel dimensions.** That's fine — the post-production timeline normalizes every clip to the delivery resolution automatically when you add it (`POST /timeline/clips`). You do not need to pre-upscale before adding a still to the timeline. If you need the still at delivery resolution *outside* the timeline (e.g. as a thumbnail), regenerate with the target aspect ratio and accept the native resolution.
 
-### API Quick Reference — Complete Image Generation Examples
+### MCP Quick Reference
 
-**Copy-paste ready.** For the full parameter reference, see `pr0ta-api`. Use `GET /api/crew/model_defaults?model_id={model_id}` for the authoritative parameter list and types for any model.
+Prefer the bundled PR0TA MCP connector for agent workflows. Submit with `generation_submit`, then poll with `tasks_get`.
+
+```json
+{
+  "project_id": "project-uuid-or-slug",
+  "request": {
+    "generator": "image",
+    "mode": "txt_to_img",
+    "model": "nano_banana_2",
+    "prompt": "Dark navy infographic showing global market growth, gold accent text, clean vector style.",
+    "width": 1920,
+    "height": 1080,
+    "format": "jpeg"
+  }
+}
+```
+
+### REST Fallback — Complete Image Generation Examples
+
+Use REST/curl only when MCP is unavailable, for high-volume scripts, or for endpoints not yet exposed through MCP. For the full parameter reference, see `pr0ta-api`. Use `models_get_defaults` or `GET /api/crew/model_defaults?model_id={model_id}` for the authoritative parameter list and types for any model.
 
 ```bash
 # Generate an image via API (Nano Banana 2 — default)

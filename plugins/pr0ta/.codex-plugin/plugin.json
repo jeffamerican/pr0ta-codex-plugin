@@ -1,6 +1,6 @@
 {
   "name": "pr0ta",
-  "version": "5.16.0",
+  "version": "5.17.0",
   "description": "Automate creative media production on PR0TA: AI image, video, voice, music, client review rooms, downloads, and timeline workflows.",
   "author": {
     "name": "Jeffery Lando"
@@ -18,6 +18,7 @@
     "review"
   ],
   "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "PR0TA",
     "shortDescription": "Creative media production workflows for PR0TA.",

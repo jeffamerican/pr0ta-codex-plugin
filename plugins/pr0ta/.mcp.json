@@ -1,0 +1,6 @@
+{
+  "pr0ta": {
+    "type": "http",
+    "url": "https://app.pr0ta.com/api/mcp/mcp"
+  }
+}
