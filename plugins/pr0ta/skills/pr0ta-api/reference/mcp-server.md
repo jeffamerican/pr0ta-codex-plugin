@@ -24,11 +24,11 @@ Both share a single provider-agnostic tool registry — each tool is defined onc
 | `tasks_get` | Poll canonical task state and result | `project_id`, `task_id` |
 | `tasks_cancel` | Cancel a queued/running task | `project_id`, `task_id` |
 | `assets_list` | List project assets with simple filters and pagination | `project_id`, `kind`, `task_id`, `limit`, `offset` |
-| `assets_upload_start` | Create an upload intent/registration handoff for files | `project_id`, `filename`, `content_type`, `size_bytes` |
+| `assets_upload_start` | Create an upload intent/registration handoff for files | `project_id`, `filename`, `content_type`, `kind`, `folder_path` |
 | `assets_get_download_link` | Return a download URL for an asset | `project_id`, `asset_id` |
 | `post_sequence_get` | Load the saved post-production sequence/timeline | `project_id`, `sequence_id` (optional) |
-| `post_sequence_save` | Save a post-production sequence/timeline payload | `project_id`, `timeline`, `sequence_id` (optional) |
-| `post_render_start` | Start a post-production render task | `project_id`, `sequence_id`, `from`, `to`, `resolution` |
+| `post_sequence_save` | Save or patch a post-production sequence/timeline payload | `project_id`, `timeline`, `sequence_id` (optional), `merge_existing`, `lock_token` |
+| `post_render_start` | Start a post-production render task | `project_id`, `render_request`, `sequence_id` |
 | `narration_timeline_get` | Load narration-timeline state | `project_id` |
 | `narration_materialize_to_post` | Materialize narration cuts into post-production | `project_id`, `sequence_name`, `replace` |
 | `review_submit_assets` | Publish project assets to a client review room | `project_id`, `asset_ids`, `title`, `description`, `review_notes`, `allow_download`, `webhook_url`, `webhook_secret` |
@@ -76,6 +76,7 @@ Not all roles have access to all tools. The registry enforces access per role.
 | `get_set_references` | | | Y | | | | Y | | | Y | Y | Y | |
 | `get_shot_assets` | | | Y | | | | | | | | Y | Y | |
 | `get_screenplay_text` | Y | | Y | | Y | Y | | | | | | Y | Y |
+| `review_submit_assets` | | Y | Y | | Y | | | | | | | Y | |
 | `submit_assets_for_review` | | Y | Y | | Y | | | | | | | Y | |
 | `get_review_annotations` | | Y | Y | | Y | | | | | | | Y | |
 

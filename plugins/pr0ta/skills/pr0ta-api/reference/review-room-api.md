@@ -6,7 +6,7 @@
 
 Skills users can submit one or more project assets to a PR0TA client review room without using the web UI. PR0TA returns a public review link that can be sent to a reviewer. After the reviewer adds comments, time-coded notes, annotations, or approval/change-request decisions, the skills user retrieves that feedback through the MCP tool surface or REST API.
 
-This workflow is exposed through **PR0TA agent/MCP tools** (`enable_studio_mode`, `review_submit_assets`, `submit_assets_for_review`, `get_review_annotations`). Prefer `review_submit_assets` in MCP clients; `submit_assets_for_review` is retained as a legacy alias. The review tools are available to `editor`, `director`, `producer`, and `script_supervisor` roles.
+This workflow is exposed through **PR0TA agent/MCP tools** (`enable_studio_mode`, `review_submit_assets`, `get_review_annotations`). Use `review_submit_assets` for new MCP workflows. `submit_assets_for_review` is a legacy compatibility alias. The review tools are available to `editor`, `director`, `producer`, and `script_supervisor` roles.
 
 When ingesting review annotations for a timeline edit, generate a shot replacement checklist before making changes. Each open timestamped note should be keyed by:
 
@@ -83,7 +83,7 @@ Use `displayed_frame_index` / `frame_index` as the repair target. `round(current
 
 Creates or reuses studio submissions for the supplied assets, publishes them to a public client review room, creates a share link, and returns the share URL.
 
-`submit_assets_for_review` accepts the same arguments and remains available as a legacy alias.
+`submit_assets_for_review` remains available as a legacy alias, but new agents should use `review_submit_assets`.
 
 ### Required Access
 
@@ -305,7 +305,7 @@ The internal `published` event is intentionally omitted from this tool response.
 
 ## Completion Webhook
 
-If `webhook_url` is supplied to `submit_assets_for_review`, PR0TA sends one best-effort POST after every submitted asset in the review round has a reviewer decision.
+If `webhook_url` is supplied to `review_submit_assets`, PR0TA sends one best-effort POST after every submitted asset in the review round has a reviewer decision.
 
 ### Headers
 
@@ -350,7 +350,7 @@ X-PR0TA-Webhook-Secret: optional-shared-secret
 ## Integration Pattern
 
 1. Upload or locate project assets through the normal asset workflow.
-2. Call `submit_assets_for_review` with the asset IDs and optional webhook URL.
+2. Call `review_submit_assets` with the asset IDs and optional webhook URL.
 3. Send `review_url` to the client reviewer.
 4. Wait for webhook or poll `get_review_annotations`.
 5. Pull annotations and review events.
