@@ -35,6 +35,9 @@ Both share a single provider-agnostic tool registry — each tool is defined onc
 | `models_list` | List available models and filter by modality | `generator`, `mode`, `image_kind` |
 | `models_get_defaults` | Get model parameter defaults/schema | `model_id` |
 | `production_context_get` | Fetch existing script breakdown, casting, set, prop, look, and approved reference context for a scene/shot before generation | `project_id`, `scene_number`, `shot_number`, `character_names`, `include_provider_guidance` |
+| `storyboard_chunks_list` | List 4-15s screenplay/storyboard chunks suitable for Seedance storyboard reference sheets | `project_id`, `scene_number`, `scene_range_end`, `max_duration_seconds` |
+| `storyboard_reference_sheet_generate` | Generate chronological storyboard reference sheet variations for one chunk | `project_id`, `chunk_id`, `variation_count`, `reference_asset_ids`, `reference_image_urls`, `include_chunk_reference_urls` |
+| `storyboard_reference_sheets_list` | List generated storyboard reference sheet assets for a chunk, optionally with download links | `project_id`, `chunk_id`, `include_download` |
 
 ### Project Intelligence and Legacy Review Tools
 
@@ -50,7 +53,7 @@ Both share a single provider-agnostic tool registry — each tool is defined onc
 | `submit_assets_for_review` | Legacy alias for review-room submission | `asset_ids` (required); `title`, `description`, `review_notes`, `allow_download`, `webhook_url`, `webhook_secret` (optional) |
 | `get_review_annotations` | Retrieve review comments, annotations, and decisions | `review_round_id`, `submission_id`, `resolution_status` (optional) |
 
-Prefer `production_context_get` over a hand-rolled ledger when a project already has breakdowns, casting, department-head references, or contact/character sheets. It composes existing PR0TA prep state and returns provider guidance for Seedance and Kling.
+Prefer `production_context_get` over a hand-rolled ledger when a project already has breakdowns, casting, department-head references, or contact/character sheets. It composes existing PR0TA prep state and returns provider guidance for Seedance and Kling. For Seedance 2.0 Omni storyboard-control workflows, use `storyboard_chunks_list` -> `storyboard_reference_sheet_generate` -> `tasks_get` -> `storyboard_reference_sheets_list`.
 
 ### Discovery Tools
 
@@ -80,6 +83,9 @@ Not all roles have access to all tools. The registry enforces access per role.
 | `get_shot_assets` | | | Y | | | | | | | | Y | Y | |
 | `get_screenplay_text` | Y | | Y | | Y | Y | | | | | | Y | Y |
 | `production_context_get` | | Y | Y | Y | | | Y | Y | Y | Y | Y | Y | |
+| `storyboard_chunks_list` | | Y | Y | | | | | | | Y | | Y | |
+| `storyboard_reference_sheet_generate` | | Y | Y | | | | | | | Y | | Y | |
+| `storyboard_reference_sheets_list` | | Y | Y | | | | | | | Y | | Y | |
 | `review_submit_assets` | | Y | Y | | Y | | | | | | | Y | |
 | `submit_assets_for_review` | | Y | Y | | Y | | | | | | | Y | |
 | `get_review_annotations` | | Y | Y | | Y | | | | | | | Y | |

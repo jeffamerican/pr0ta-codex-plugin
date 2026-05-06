@@ -30,7 +30,7 @@
 | `muapi/seedance-v2.0-i2v` | Image-to-video | Required | ≥1 image ref | Image fields only | **No** video/audio/character refs |
 | `muapi/seedance-2.0-omni-reference` | All video modes | Required | ≥1 omni ref | **All** image fields + `reference_video_urls[]`, `reference_audio_urls[]`, `references[]`, `element_ids[]`, `elements[]`, `character_id`, `character_ids[]` | **Broadest reference surface** — preferred for reference-heavy work |
 | `muapi/seedance-2-character` | Character-construction path | Not enforced | ≥1 image ref (up to 3) | Image fields only | **Character-sheet training.** Requires `character_name` + `outfit_description`. Async; returns Omni token in `result_refs.character_id` for later omni-reference calls. |
-| `muapi/seedance-2-omni-reference-train` | Omni-token training path | Not enforced | ≥1 image ref | Image fields only | **Single-portrait training.** Requires `character_name`. Async; returns Omni token in `result_refs.character_id` for later omni-reference calls. Fastest path into Omni when one clean portrait is enough. See `pr0ta-consistency` → "Creating a Seedance Character Token — Two Paths". |
+| `muapi/seedance-2-omni-reference-train` | Omni-token training path | Not enforced | ≥1 image ref | Image fields only | **Single-portrait training.** Requires `character_name`. Async; returns Omni token in `result_refs.character_id` for later omni-reference calls. Fastest path into Omni when one clean portrait is enough. See `pr0ta-consistency` → `reference/provider-consistency-systems.md` → "Creating A Seedance Character Token". |
 | Kling I2V / ref-to-vid (`kling/*`, `fal-ai/kling-video/*`) | `ref_to_vid` / txt/video | Usually | Generic video rules | Image fields, `element_ids[]`, `elements[]`, `references[]` image entries | **Plus** `camera_control` and `voice_ids[]` (Kling only) |
 
 ### Validator Rules That Matter In Practice
@@ -120,7 +120,7 @@ Async. Returns an Omni token in `result_refs.character_id` on completion. `outfi
   "description": "Female lead, black leather jacket, studio portrait, neutral expression"
 }
 ```
-Async. Returns an Omni token in `result_refs.character_id` on completion. Fastest path into Omni Reference when a single clear face-forward image is enough. Persist the returned token via `POST /characters` (provider: `muapi`) for later reuse via `character_ids[]` on `muapi/seedance-2.0-omni-reference`. See `pr0ta-consistency` → "Creating a Seedance Character Token — Two Paths" for the full lifecycle.
+Async. Returns an Omni token in `result_refs.character_id` on completion. Fastest path into Omni Reference when a single clear face-forward image is enough. Persist the returned token via `POST /characters` (provider: `muapi`) for later reuse via `character_ids[]` on `muapi/seedance-2.0-omni-reference`. See `pr0ta-consistency` → `reference/provider-consistency-systems.md` → "Creating A Seedance Character Token" for the full lifecycle.
 
 **Kling image-to-video (cinematic continuation):**
 
@@ -221,4 +221,3 @@ This table is the copy-paste-safe surface for agents — what provider-native fi
 **Legend:** *Implemented* = unified→provider translation is wired. *Tested* = targeted provider-specific outbound assertion exists. *Partial* = path looks wired but full provider-specific outbound assertion is not at the same confidence level as Fal Kling V3 Pro.
 
 **Matrix status:** The validator-derived matrix is authoritative for submission-time validation. The provider-certified rows above are authoritative for what actually reaches the provider. Both are now in sync for the common paths.
-

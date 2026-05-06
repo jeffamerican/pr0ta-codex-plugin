@@ -329,7 +329,9 @@ When writing each shot's prompt, copy the relevant anchors verbatim from the bib
 
 For advanced Seedance productions, the prompt bible can become a visible global reference: one dense approved visual bible used as `@image1` across the production, plus chunk-specific storyboard frames and references for each 10-15 second story unit. Use this when the story has recurring cast, locations, props, or a strong look that must survive many generations.
 
-Before writing those prompts, read `pr0ta-video` -> `reference/seedance-global-storyboard.md`. Keep this skill focused on prose anchors; the reference file owns Seedance token roles, payload shape, and storyboard chunk workflow.
+For complex action, process, or story continuity, do not rely on prose alone. Generate a **chronological storyboard reference sheet** first, then prompt Seedance to animate that sheet in strict panel order. The prompt should name the sheet's actual token explicitly after the reference order is final, for example: `@image3 is the chronological storyboard reference sheet for this chunk. It controls panel order, action progression, staging, composition, and final state.`
+
+Before writing those prompts, read `pr0ta-video` -> `reference/seedance-global-storyboard.md`. Keep this skill focused on prose anchors; the reference file owns MCP tool names, Seedance token roles, payload shape, and storyboard sheet workflow.
 
 ## Model-Specific Prompting
 
@@ -386,6 +388,7 @@ Seedance is quad-modal -- it synthesizes text, image, video, and audio reference
 - Seedance understands audio-visual synchronization natively
 
 **Character consistency in Seedance:**
+- If the same character appears in more than one generated shot, provider-level consistency resources are mandatory. Use the approved Seedance Character or Kling Element from `pr0ta-consistency`; free-text prompts alone are not acceptable for repeat characters.
 - Even with a reference image, reiterate key traits in text: "short silver hair," "mole under left eye"
 - For multi-shot content, use the same character description verbatim in every prompt
 - One strong reference is better than five weak ones

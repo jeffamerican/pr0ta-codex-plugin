@@ -34,7 +34,7 @@ Seedance uses `@` tokens to bind uploaded references to specific roles in the pr
 
 ### Seedance Prompting Best Practices
 
-For a global visual bible plus 10-15 second storyboard chunk workflow, read `seedance-global-storyboard.md` before writing the prompt. Use this when `@image1` should carry the approved world/look and later references carry the current chunk.
+For a global visual bible plus generated 4-15 second storyboard reference sheet workflow, read `seedance-global-storyboard.md` before writing the prompt. Use this when `@image1` should carry the approved world/look and later references carry the current chunk. Derive every `@imageN` token from the final reference order.
 
 Seedance prompting is more reference-driven than Kling. The model excels when you give it explicit references and describe how they relate.
 
@@ -97,7 +97,7 @@ Generate the character sheet with Nano Banana 2 first (see `pr0ta-consistency` f
 - **Single clean portrait →** `muapi/seedance-2-omni-reference-train` (needs `image_url` + `character_name`)
 - **Character sheet or 1-3 approved stills →** `muapi/seedance-2-character` (needs `images_list[]` + `character_name` + `outfit_description`)
 
-Both run through the unified `/generate` endpoint, are async, and return the Omni token in `result_refs.character_id` on completion. Full payloads, decision framework, and persistence flow: see `pr0ta-consistency` → "Creating a Seedance Character Token — Two Paths".
+Both run through the unified `/generate` endpoint, are async, and return the Omni token in `result_refs.character_id` on completion. Full payloads, decision framework, and persistence flow: see `pr0ta-consistency` → `reference/provider-consistency-systems.md` → "Creating A Seedance Character Token".
 
 **Persist the trained token to the project character store:**
 ```json

@@ -33,11 +33,11 @@ For any shot where consistency, continuity, or precise intent matter, **generate
 
 ### Decision Tree
 
-- **Need character consistency across shots →** Seedance Omni with `character_id` **or** Kling multi-shot (pick the model that gave you the better lock in a test pair).
+- **Need character consistency across shots →** This is mandatory for any recurring character. Use Seedance Omni with `character_id` or Kling with Element bundles before generation; do not rely on free-text prompts alone.
 - **Need up to 6 camera cuts in one generation →** Kling O3 Pro (6 cuts) or Kling V3 Pro (5 shots). Seedance does not support as many discrete cuts in one call.
 - **Need structured `camera_control` API parameters →** Kling V3 (only model with structured camera control).
 - **Need quad-modal references (image + video + audio) →** Seedance Omni.
-- **Need a reference-heavy 10-15s storyboard chunk →** Seedance Omni with a global visual bible as `@image1` plus chunk-specific storyboard/reference images. Read `reference/seedance-global-storyboard.md`.
+- **Need a reference-heavy 4-15s storyboard chunk →** Seedance Omni with a global visual bible as `@image1` plus a generated chronological storyboard reference sheet for the chunk. Use `storyboard_chunks_list` and `storyboard_reference_sheet_generate`; read `reference/seedance-global-storyboard.md`.
 - **Need audio-driven rhythm matching →** Seedance Omni.
 - **Need a long continuous sequence (30s+) with consistent characters/audio →** Seedance Omni via **extension chaining** — use "Text with Reference" with the previous clip as `@video1` to seamlessly continue from the last frame. See `reference/seedance-omni.md` → "Seamless Video Extension".
 - **Need to extend an existing clip as new generated motion →** use unified video extension: `generator=video`, `mode=extend_video`, a source `video_asset_id`/`video_url`, prompt, and an extension model such as `fal-ai/pixverse/v6/extend`, `fal-ai/veo3.1/extend-video`, `fal-ai/vidu/q2/video-extension/pro`, `fal-ai/magi/extend-video`, or `kling/v3/video-extend`.
@@ -319,7 +319,7 @@ Guidelines:
 - Use the maximum duration the model supports (up to 15s) whenever your shot allows it
 - Use multi-prompt mode for complex sequences within a single generation — this keeps all shots in one visual context
 - Only split into separate generations when shots are in different locations, feature different characters, or require fundamentally different styles
-- For productions requiring many clips, use stored Element bundles and Character profiles to mitigate inter-generation drift. Read the character's consistency bundle (`GET /characters/{id}/consistency`) before generation for provider-ready payloads. See `pr0ta-consistency`.
+- For productions requiring many clips or any recurring character, use stored Element bundles and Character profiles to prevent inter-generation drift. Read the character's consistency bundle (`GET /characters/{id}/consistency`) before generation for provider-ready payloads. See `pr0ta-consistency`.
 
 ## Seedance 2.0 Omni (ByteDance Lynx) — Reference
 
@@ -327,9 +327,9 @@ Seedance 2.0 Omni (`muapi/seedance-2.0-omni-reference`) is one of the co-equal d
 
 **For the full deep-dive** — reference token system (`@image1`..`@image9`, `@video1`..`@video3`, `@audio1`..`@audio3`, `@character:<id>`), character identity workflow, multi-prompt structure, camera/motion control grammar, worked payloads, and field-tested prompting patterns — **Read `reference/seedance-omni.md`** (sibling file in this skill directory).
 
-**For advanced storyboarded Seedance productions** — one global visual bible plus chunk-specific storyboard frames, character/set/prop references, and 10-15 second narrative chunks — **Read `reference/seedance-global-storyboard.md`** before writing prompts or payloads.
+**For advanced storyboarded Seedance productions** — one global visual bible plus chunk-specific chronological storyboard reference sheets, character/set/prop references, and 4-15 second narrative chunks — **Read `reference/seedance-global-storyboard.md`** before writing prompts or payloads. Use MCP `storyboard_chunks_list` to find chunks, `storyboard_reference_sheet_generate` to generate 3-5 sheet variations, `tasks_get` to poll, and `storyboard_reference_sheets_list` to pick the approved sheet.
 
-**Don't have a `character_id` yet?** There are two training paths — single clean portrait → `muapi/seedance-2-omni-reference-train`; character sheet or 1-3 approved stills → `muapi/seedance-2-character`. Both return an Omni token in `result_refs.character_id`. See `pr0ta-consistency` → "Creating a Seedance Character Token — Two Paths" for the full decision framework, payloads, and persistence flow.
+**Don't have a `character_id` yet?** There are two training paths — single clean portrait → `muapi/seedance-2-omni-reference-train`; character sheet or 1-3 approved stills → `muapi/seedance-2-character`. Both return an Omni token in `result_refs.character_id`. See `pr0ta-consistency` → `reference/provider-consistency-systems.md` → "Creating A Seedance Character Token" for the full decision framework, payloads, and persistence flow.
 
 Essential facts for any call (copy-paste-safe):
 

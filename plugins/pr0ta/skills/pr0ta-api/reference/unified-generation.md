@@ -236,7 +236,7 @@ Advanced Seedance Omni request with stored character + multi-modal references:
 **Notes on consistency fields:**
 - `element_ids[]` -- references stored project Elements (resolved server-side to Kling provider format)
 - `character_ids[]` -- references stored project Characters (currently resolves one character per request)
-- `character_id` -- direct MuAPI Seedance character reference (alternative to stored resolution). To **create** a new Omni character token, use `muapi/seedance-2-omni-reference-train` (single portrait) or `muapi/seedance-2-character` (character sheet / 1-3 stills); both return the token in `result_refs.character_id`. See `pr0ta-consistency` → "Creating a Seedance Character Token — Two Paths".
+- `character_id` -- direct MuAPI Seedance character reference (alternative to stored resolution). To **create** a new Omni character token, use `muapi/seedance-2-omni-reference-train` (single portrait) or `muapi/seedance-2-character` (character sheet / 1-3 stills); both return the token in `result_refs.character_id`. See `pr0ta-consistency` → `reference/provider-consistency-systems.md` → "Creating A Seedance Character Token".
 - **Consistency bundle** -- before multi-shot character generation, read `GET /characters/{id}/consistency` or `GET /characters/consistency?name=...` to get all approved references, Elements, tokens, and `provider_payloads` in one call. See `reference/projects-models-resources.md` → "Character Consistency Bundles".
 - `multi_prompt[]` -- array of prompt segments for multi-shot generation; set `prompt_mode: "multi_prompt"` to activate
 - `camera_control` -- structured camera control for Kling V3/O3

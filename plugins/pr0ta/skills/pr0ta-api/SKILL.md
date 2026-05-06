@@ -9,16 +9,7 @@ This reference covers the PR0TA MCP tool surface and REST API endpoints availabl
 
 ## Agent Execution Default: MCP First
 
-The Codex plugin bundles the PR0TA remote MCP connector in `plugins/pr0ta/.mcp.json`:
-
-```json
-{
-  "pr0ta": {
-    "type": "http",
-    "url": "https://app.pr0ta.com/api/mcp/mcp"
-  }
-}
-```
+The Codex plugin bundles the PR0TA remote MCP connector in `plugins/pr0ta/.mcp.json`, pointing at `https://app.pr0ta.com/api/mcp/mcp`.
 
 For agent workflows, prefer MCP tools over ad hoc REST/curl calls whenever an MCP tool exists. Use REST for routes not yet exposed through MCP, high-volume scripts, and direct file downloads from MCP-provided links.
 
@@ -34,40 +25,23 @@ Submit tools return task IDs, not completed media. Treat `tasks_get` as the cano
 
 ## Authentication
 
-PR0TA supports two authentication methods:
+PR0TA supports remote MCP OAuth for hosted connectors and PAT bearer auth for REST/local stdio fallback.
 
 ### Personal Access Tokens (REST and Local Stdio Fallback)
 
 Remote MCP clients use PR0TA OAuth through the host connector. A PAT is required for reliable REST fallback workflows and local stdio MCP workflows. PATs are long-lived tokens that don't require email/password. Always ensure you have a PAT before starting REST/local stdio work.
 
-**If the user doesn't have a PAT, help them create one:**
-
-1. **Ask the user** for their PR0TA PAT (starts with `pat_`).
-2. **If they don't have one**, guide them to create it:
-   - Navigate to `app.pr0ta.com/settings` in the browser
-   - Go to the **General** tab → **API Keys** section
-   - Click **"Generate New Key"**
-   - Name it (e.g., "Codex plugin") and copy the token immediately
-   - **The token is only shown once** — if they miss it, they need to generate a new one
+If the user does not have a PAT, guide them to `app.pr0ta.com/settings` → **General** → **API Keys** → **Generate New Key**. The token starts with `pat_` and is shown only once.
 
 **Using a PAT for REST/local stdio fallback:**
 ```bash
-curl -H "Authorization: Bearer pat_xxxxxxxxxxxxx" https://app.pr0ta.com/api/v2/projects
-```
-
-**Store the PAT for the session:**
-```bash
 export PR0TA_PAT="pat_xxxxxxxxxxxxx"
-# Then use in all requests:
 curl -H "Authorization: Bearer $PR0TA_PAT" https://app.pr0ta.com/api/v2/projects
 ```
 
 **Managing PATs (requires JWT session -- PATs cannot manage PATs):**
 
-Create:
-```
-POST /api/auth/personal-access-tokens
-```
+Create: `POST /api/auth/personal-access-tokens`
 ```json
 {
   "name": "Skill Runner",
@@ -76,15 +50,8 @@ POST /api/auth/personal-access-tokens
 ```
 Response includes the full `token` (only shown once) and a `token_record` with `id`, `name`, `token_prefix`, `created_at`, `expires_at`.
 
-List:
-```
-GET /api/auth/personal-access-tokens
-```
-
-Revoke:
-```
-DELETE /api/auth/personal-access-tokens/{token_id}
-```
+List: `GET /api/auth/personal-access-tokens`
+Revoke: `DELETE /api/auth/personal-access-tokens/{token_id}`
 
 ### JWT (Fragile Fallback — Avoid)
 
@@ -100,7 +67,7 @@ TOKEN=$(curl -s -X POST https://app.pr0ta.com/api/auth/login \
 curl -H "Authorization: Bearer $TOKEN" https://app.pr0ta.com/api/v2/projects/PROJECT_ID/assets
 ```
 
-**Important:** The `/download` and `/thumbnail` endpoints are public and do NOT require auth. All other endpoints require either a PAT (`pat_xxx`) or JWT bearer token.
+**Important:** The `/download` and `/thumbnail` endpoints are public. All other endpoints require either a PAT (`pat_xxx`) or JWT bearer token.
 
 ### Rate Limits (Per-Minute, Per-Authenticated-User)
 
@@ -121,13 +88,7 @@ PR0TA applies a global per-minute request limit at the subscription-tier level. 
 
 Both `app.pr0ta.com` and `api.pr0ta.com` accept API requests (the app domain proxies to the API domain). **Use `app.pr0ta.com` as the canonical base URL** — it's what the platform documentation uses and it works for both browser and API access. All examples in this skill use `app.pr0ta.com`.
 
-```bash
-# Canonical (use this)
-BASE_URL="https://app.pr0ta.com"
-
-# Also works (proxied), but not canonical
-# https://api.pr0ta.com
-```
+Use `BASE_URL="https://app.pr0ta.com"`. `https://api.pr0ta.com` also works through proxying, but is not canonical.
 
 ---
 
@@ -193,6 +154,7 @@ Poll the returned task with `tasks_get`.
 - **Asset IDs resolve server-side** to internal URLs. All referenced assets must belong to the same project. You can also pass URLs directly (`start_image_url`, `reference_image_urls[]`, etc.).
 - **Stored consistency resources** resolve server-side too: `element_ids[]` → Kling element references, `character_ids[]` → Seedance/MuAPI character references. Do not mix — Elements are Kling, Characters are Seedance.
 - **Prompt token rules:** use `@Image1` for Start Image, `@Element1`/`@Element2` for elements, `@Video1`/`@Audio1` for Seedance Omni refs. **Never use `@Image2`** — the End Image is structural, not promptable.
+- **Seedance storyboard sheets:** for advanced Omni chunks, list chunks with `storyboard_chunks_list`, generate sheet variations with `storyboard_reference_sheet_generate`, poll with `tasks_get`, then list/select sheets with `storyboard_reference_sheets_list`. Use the approved sheet as a normal image reference in the later `generation_submit` video request.
 - **`sound` must be explicit on every video request** (`"on"` or `"off"`). Omitting it produces unpredictable audio.
 - **Video extension is first-class:** use `generator=video`, `mode=extend_video`, a source `video_url` or `video_asset_id`, a prompt, and an extension-capable model such as `fal-ai/pixverse/v6/extend`, `fal-ai/veo3.1/extend-video`, `fal-ai/vidu/q2/video-extension/pro`, `fal-ai/magi/extend-video`, or `kling/v3/video-extend`.
 - **Submission returns a task**, never a finished asset. Extract `task_id` and poll — do not assume 200 on submit means the job succeeds. Async provider errors surface only at terminal polling. The initial task may have `provider: null` / `model_id: null`; this is normal, not a failure.
@@ -362,7 +324,7 @@ Essential facts:
 - **Local setup:** `python mcp_server.py` (stdio transport). Configure in `.claude/mcp.json` (Claude Code) or `.cursor/mcp.json` (Cursor) only for repo-local development.
 - **Auth:** Local clients use `PR0TA_MCP_ACCESS_TOKEN` env var or per-call `access_token`. Remote connectors use OAuth bearer.
 - **All MCP tools except `list_projects` require `project_id`.** Use `list_projects` first to discover available projects.
-- **Available tools:** `list_projects`, `get_project_metadata`, `generation_submit`, `generation_batch_submit`, `tasks_get`, `tasks_cancel`, `assets_list`, `assets_upload_start`, `assets_get_download_link`, `post_sequence_get`, `post_sequence_save`, `post_render_start`, `narration_timeline_get`, `narration_materialize_to_post`, `review_submit_assets`, `models_list`, `models_get_defaults`, plus legacy project-intelligence and review tools such as `get_scene_breakdown`, `get_scene_shotlist`, `get_character_references`, `get_set_references`, `get_shot_assets`, `get_screenplay_text`, `enable_studio_mode`, `submit_assets_for_review`, and `get_review_annotations`.
+- **Available tools:** `list_projects`, `get_project_metadata`, `generation_submit`, `generation_batch_submit`, `tasks_get`, `tasks_cancel`, `assets_list`, `assets_upload_start`, `assets_get_download_link`, `post_sequence_get`, `post_sequence_save`, `post_render_start`, `narration_timeline_get`, `narration_materialize_to_post`, `storyboard_chunks_list`, `storyboard_reference_sheet_generate`, `storyboard_reference_sheets_list`, `review_submit_assets`, `models_list`, `models_get_defaults`, plus legacy project-intelligence and review tools such as `get_scene_breakdown`, `get_scene_shotlist`, `get_character_references`, `get_set_references`, `get_shot_assets`, `get_screenplay_text`, `enable_studio_mode`, `submit_assets_for_review`, and `get_review_annotations`.
 
 ---
 
