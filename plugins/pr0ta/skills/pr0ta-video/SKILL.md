@@ -1,6 +1,6 @@
 ---
 name: pr0ta-video
-description: "PR0TA video generation guide for Seedance, Kling, references, multi-shot continuity, video extension, camera/voice control, Elements/Characters, duration limits, and provider fallback. Read when generating, extending, or troubleshooting video."
+description: "PR0TA video generation guide for Seedance, Kling, references, global visual bibles, storyboard chunks, multi-shot continuity, video extension, camera/voice control, Elements/Characters, duration limits, and provider fallback. Read when generating, extending, or troubleshooting video."
 ---
 
 # Video Generator Reference
@@ -37,6 +37,7 @@ For any shot where consistency, continuity, or precise intent matter, **generate
 - **Need up to 6 camera cuts in one generation →** Kling O3 Pro (6 cuts) or Kling V3 Pro (5 shots). Seedance does not support as many discrete cuts in one call.
 - **Need structured `camera_control` API parameters →** Kling V3 (only model with structured camera control).
 - **Need quad-modal references (image + video + audio) →** Seedance Omni.
+- **Need a reference-heavy 10-15s storyboard chunk →** Seedance Omni with a global visual bible as `@image1` plus chunk-specific storyboard/reference images. Read `reference/seedance-global-storyboard.md`.
 - **Need audio-driven rhythm matching →** Seedance Omni.
 - **Need a long continuous sequence (30s+) with consistent characters/audio →** Seedance Omni via **extension chaining** — use "Text with Reference" with the previous clip as `@video1` to seamlessly continue from the last frame. See `reference/seedance-omni.md` → "Seamless Video Extension".
 - **Need to extend an existing clip as new generated motion →** use unified video extension: `generator=video`, `mode=extend_video`, a source `video_asset_id`/`video_url`, prompt, and an extension model such as `fal-ai/pixverse/v6/extend`, `fal-ai/veo3.1/extend-video`, `fal-ai/vidu/q2/video-extension/pro`, `fal-ai/magi/extend-video`, or `kling/v3/video-extend`.
@@ -325,6 +326,8 @@ Guidelines:
 Seedance 2.0 Omni (`muapi/seedance-2.0-omni-reference`) is one of the co-equal default models for reference-heavy video work. It supports text + up to 9 images + 3 videos + 3 audio references in a single generation, persistent character identities via `character_id`, native multi-shot continuity, and motion/rhythm matching via video and audio references.
 
 **For the full deep-dive** — reference token system (`@image1`..`@image9`, `@video1`..`@video3`, `@audio1`..`@audio3`, `@character:<id>`), character identity workflow, multi-prompt structure, camera/motion control grammar, worked payloads, and field-tested prompting patterns — **Read `reference/seedance-omni.md`** (sibling file in this skill directory).
+
+**For advanced storyboarded Seedance productions** — one global visual bible plus chunk-specific storyboard frames, character/set/prop references, and 10-15 second narrative chunks — **Read `reference/seedance-global-storyboard.md`** before writing prompts or payloads.
 
 **Don't have a `character_id` yet?** There are two training paths — single clean portrait → `muapi/seedance-2-omni-reference-train`; character sheet or 1-3 approved stills → `muapi/seedance-2-character`. Both return an Omni token in `result_refs.character_id`. See `pr0ta-consistency` → "Creating a Seedance Character Token — Two Paths" for the full decision framework, payloads, and persistence flow.
 

@@ -34,6 +34,8 @@ Seedance uses `@` tokens to bind uploaded references to specific roles in the pr
 
 ### Seedance Prompting Best Practices
 
+For a global visual bible plus 10-15 second storyboard chunk workflow, read `seedance-global-storyboard.md` before writing the prompt. Use this when `@image1` should carry the approved world/look and later references carry the current chunk.
+
 Seedance prompting is more reference-driven than Kling. The model excels when you give it explicit references and describe how they relate.
 
 **Core prompt structure:**

@@ -1,6 +1,6 @@
 ---
 name: pr0ta-prompting
-description: "PR0TA visual prompting guide for image/video prompts, prompt bibles, model-specific techniques, anti-patterns, title cards, i2v key frames, and multi-shot consistency. Read before writing generation prompts."
+description: "PR0TA visual prompting guide for image/video prompts, prompt bibles, global visual bibles, Seedance storyboard chunks, model-specific techniques, anti-patterns, title cards, i2v key frames, and multi-shot consistency. Read before writing generation prompts."
 ---
 
 # Prompting Guide for PR0TA Productions
@@ -324,6 +324,12 @@ VISUAL STYLE:
 ### Using the Prompt Bible
 
 When writing each shot's prompt, copy the relevant anchors verbatim from the bible. Don't paraphrase. Don't abbreviate. The exact same words every time create the strongest consistency signal.
+
+### Global Visual Bible + Storyboard Chunks
+
+For advanced Seedance productions, the prompt bible can become a visible global reference: one dense approved visual bible used as `@image1` across the production, plus chunk-specific storyboard frames and references for each 10-15 second story unit. Use this when the story has recurring cast, locations, props, or a strong look that must survive many generations.
+
+Before writing those prompts, read `pr0ta-video` -> `reference/seedance-global-storyboard.md`. Keep this skill focused on prose anchors; the reference file owns Seedance token roles, payload shape, and storyboard chunk workflow.
 
 ## Model-Specific Prompting
 

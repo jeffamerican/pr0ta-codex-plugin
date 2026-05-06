@@ -1,11 +1,43 @@
 ---
 name: pr0ta-consistency
-description: "PR0TA visual consistency for recurring characters, locations, props, and multi-shot continuity. Read when creating or using Kling Elements, Seedance Characters, consistency bundles, reference pipelines, or repeat-subject generation."
+description: "PR0TA visual consistency for recurring characters, locations, props, global visual bibles, Seedance storyboard chunks, and multi-shot continuity. Read when creating or using Kling Elements, Seedance Characters, consistency bundles, reference pipelines, or repeat-subject generation."
 ---
 
 # Visual Consistency & Continuity Reference
 
 This reference covers how to maintain character, set, prop, and style consistency across multi-shot AI productions in PR0TA. It documents the two primary consistency systems (Kling Elements and Seedance Characters), the professional reference pipeline, and practical workflows.
+
+## Existing PR0TA Prep Context First
+
+When a project already has a script, script breakdown, casting work, production-designer looks, propmaster references, stylist looks, or casting contact/character sheets, **use those as the source of truth before creating new references**. Do not maintain a separate private JSON ledger for continuity unless the user explicitly asks for an external export.
+
+Use the MCP tool:
+
+```json
+production_context_get({
+  "project_id": "project_id_here",
+  "scene_number": 12,
+  "shot_number": 3,
+  "include_provider_guidance": true
+})
+```
+
+It returns:
+- script-supervisor scene context and director shotlist data
+- casting characters with approved portraits, character sheets, contact-sheet style references, Seedance IDs, and voice config when available
+- production-designer set/location looks
+- stylist wardrobe/look references
+- propmaster prop references
+- provider guidance for Seedance and Kling, including missing-reference warnings
+
+Workflow for skill users:
+1. Fetch `production_context_get` for the target scene/shot.
+2. Use existing approved cast/set/prop/look references first.
+3. Generate only missing references, then save them back to PR0TA assets/resources.
+4. For Kling, create or reuse Elements for recurring characters, props, and locations.
+5. For Seedance, use one stored character lock for the primary character and pass supporting people/sets/props as image/video references unless multi-character lock support is confirmed by the API.
+6. For reference-heavy Seedance productions, create or reuse one approved global visual bible from PR0TA prep assets and pass it as `@image1`; keep chunk-specific storyboard frames and refs after it in the reference stack. See `pr0ta-video` -> `reference/seedance-global-storyboard.md`.
+7. Keep the asset ledger tied to PR0TA asset IDs, Element IDs, Character IDs, and review links; do not fork the production state into a parallel notes file.
 
 ## Consistency Systems Overview
 
@@ -487,13 +519,15 @@ After creating the missing resource, re-read the bundle — it will now include 
 
 ## Quick Reference: Consistency Workflow
 
-1. **Pre-production:** Generate multiple takes (4-6+) of character/location/prop reference images with Nano Banana 2 (or GPT Image 2 for character consistency edits). Select the best.
-2. **Tag approved references:** Use `PATCH /annotations` with `reference_type: "character_reference"` and `category: "portrait"` or `"character_sheet"` on each approved image.
-3. **Register resources:** Create Element bundles (Kling) and Character profiles (Seedance) via project API. Train Seedance tokens if needed.
-4. **Read the consistency bundle:** `GET /characters/{id}/consistency` or `GET /characters/consistency?name=...` — returns all references, Elements, tokens, and provider-ready payloads in one call.
-5. **Key frames:** Generate scene key frames using image-to-image with Element references
-6. **Video generation:** Use `provider_payloads.kling.element_ids` or `provider_payloads.seedance.character_ids` from the bundle in all generation requests
-7. **Multi-shot sequences:** Use `multi_prompt` for continuous sequences requiring intra-shot consistency
-8. **Long continuous sequences (30s+):** Use Seedance Omni **extension chaining** — feed the previous clip as `@video1` via "Text with Reference" plus static character reference images to fortify consistency. See `pr0ta-video` → `reference/seedance-omni.md` → "Seamless Video Extension".
-9. **Correction passes:** Use image edit modes to fix any consistency drift before final video generation
-10. **Reuse across project:** All Elements and Characters persist for the project lifetime -- reuse them for reshoots, additional scenes, and variations
+1. **Resolve existing context:** Call `production_context_get` for the target scene/shot and use existing breakdown, casting, character-sheet/contact-sheet, set, prop, and look references first.
+2. **Fill gaps only:** Generate multiple takes (4-6+) only for missing character/location/prop references with Nano Banana 2 (or GPT Image 2 for character consistency edits). Select the best.
+3. **Tag approved references:** Use `PATCH /annotations` with `reference_type: "character_reference"` and `category: "portrait"` or `"character_sheet"` on each approved image.
+4. **Register resources:** Create Element bundles (Kling) and Character profiles (Seedance) via project API. Train Seedance tokens if needed.
+5. **Read the consistency bundle:** `GET /characters/{id}/consistency` or `GET /characters/consistency?name=...` — returns all references, Elements, tokens, and provider-ready payloads in one call.
+6. **Global visual bible (Seedance-heavy productions):** Create or reuse one approved production bible/contact sheet as `@image1`, then add chunk-specific storyboard frames and references. See `pr0ta-video` -> `reference/seedance-global-storyboard.md`.
+7. **Key frames:** Generate scene key frames using image-to-image with Element references
+8. **Video generation:** Use `provider_payloads.kling.element_ids` or `provider_payloads.seedance.character_ids` from the bundle in all generation requests
+9. **Multi-shot sequences:** Use `multi_prompt` for continuous sequences requiring intra-shot consistency
+10. **Long continuous sequences (30s+):** Use Seedance Omni **extension chaining** — feed the previous clip as `@video1` via "Text with Reference" plus static character reference images to fortify consistency. See `pr0ta-video` → `reference/seedance-omni.md` → "Seamless Video Extension".
+11. **Correction passes:** Use image edit modes to fix any consistency drift before final video generation
+12. **Reuse across project:** All Elements and Characters persist for the project lifetime -- reuse them for reshoots, additional scenes, and variations

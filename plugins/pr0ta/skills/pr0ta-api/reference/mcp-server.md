@@ -34,6 +34,7 @@ Both share a single provider-agnostic tool registry — each tool is defined onc
 | `review_submit_assets` | Publish project assets to a client review room | `project_id`, `asset_ids`, `title`, `description`, `review_notes`, `allow_download`, `webhook_url`, `webhook_secret` |
 | `models_list` | List available models and filter by modality | `generator`, `mode`, `image_kind` |
 | `models_get_defaults` | Get model parameter defaults/schema | `model_id` |
+| `production_context_get` | Fetch existing script breakdown, casting, set, prop, look, and approved reference context for a scene/shot before generation | `project_id`, `scene_number`, `shot_number`, `character_names`, `include_provider_guidance` |
 
 ### Project Intelligence and Legacy Review Tools
 
@@ -48,6 +49,8 @@ Both share a single provider-agnostic tool registry — each tool is defined onc
 | `enable_studio_mode` | Enable Studio mode so review-room tools can create submissions, rounds, and share links | (none) |
 | `submit_assets_for_review` | Legacy alias for review-room submission | `asset_ids` (required); `title`, `description`, `review_notes`, `allow_download`, `webhook_url`, `webhook_secret` (optional) |
 | `get_review_annotations` | Retrieve review comments, annotations, and decisions | `review_round_id`, `submission_id`, `resolution_status` (optional) |
+
+Prefer `production_context_get` over a hand-rolled ledger when a project already has breakdowns, casting, department-head references, or contact/character sheets. It composes existing PR0TA prep state and returns provider guidance for Seedance and Kling.
 
 ### Discovery Tools
 
@@ -76,6 +79,7 @@ Not all roles have access to all tools. The registry enforces access per role.
 | `get_set_references` | | | Y | | | | Y | | | Y | Y | Y | |
 | `get_shot_assets` | | | Y | | | | | | | | Y | Y | |
 | `get_screenplay_text` | Y | | Y | | Y | Y | | | | | | Y | Y |
+| `production_context_get` | | Y | Y | Y | | | Y | Y | Y | Y | Y | Y | |
 | `review_submit_assets` | | Y | Y | | Y | | | | | | | Y | |
 | `submit_assets_for_review` | | Y | Y | | Y | | | | | | | Y | |
 | `get_review_annotations` | | Y | Y | | Y | | | | | | | Y | |
