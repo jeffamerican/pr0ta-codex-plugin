@@ -19,13 +19,15 @@ For agent workflows, prefer MCP tools over ad hoc REST/curl calls whenever an MC
 2. Pass `project_id` to every project-scoped tool.
 3. Submit long-running work with `generation_submit` or `generation_batch_submit`.
 4. Poll with `tasks_get`; cancel stuck work with `tasks_cancel`.
-5. Resolve assets with `assets_list` or `assets_get_download_link`.
+5. Resolve assets with `assets_list` or `assets_download`.
 
 Submit tools return task IDs, not completed media. Treat `tasks_get` as the canonical state and result contract.
 
 ## Authentication
 
 PR0TA supports remote MCP OAuth for hosted connectors and PAT bearer auth for REST/local stdio fallback.
+
+For Codex plugin installs, run `plugins/pr0ta/scripts/connect-mcp.sh` when PR0TA tools are not discoverable. The helper registers the MCP URL if needed and starts `codex mcp login pr0ta --scopes mcp`. If Codex reports `No authorization support detected`, check the live PR0TA OAuth metadata before falling back to REST; public PKCE clients require `token_endpoint_auth_methods_supported` to include `none`.
 
 ### Personal Access Tokens (REST and Local Stdio Fallback)
 
@@ -210,7 +212,7 @@ POST /api/v2/projects/{project_id}/tasks/{task_id}/cancel  ← preferred
 
 ## Asset Management and Batch Workflow — Reference
 
-For the full endpoint specs covering **asset management** (`assets_list`, `assets_upload_start`, `assets_get_download_link`; REST listing with `offset`/`limit` pagination, filtering by kind/task_id/tag, asset metadata including `storage_uri`, deletion, tagging) and the **canonical batch workflow pattern** (submit → poll → collect → download → ledger), **Read `reference/asset-management.md`** (sibling file in this skill directory).
+For the full endpoint specs covering **asset management** (`assets_list`, `assets_upload_start`, `assets_get_download_link`, `assets_download`; REST listing with `offset`/`limit` pagination, filtering by kind/task_id/tag, asset metadata including `storage_uri`, deletion, tagging) and the **canonical batch workflow pattern** (submit → poll → collect → download → ledger), **Read `reference/asset-management.md`** (sibling file in this skill directory).
 
 **Asset listing pagination:** `GET /api/v2/projects/{id}/assets` supports `offset`/`limit` pagination. Response includes `total` (total matching assets) and `next_offset` (for the next page, or `null` if no more). Default limit applies server-side; always check `next_offset` to paginate through large asset sets.
 
@@ -324,7 +326,7 @@ Essential facts:
 - **Local setup:** `python mcp_server.py` (stdio transport). Configure in `.claude/mcp.json` (Claude Code) or `.cursor/mcp.json` (Cursor) only for repo-local development.
 - **Auth:** Local clients use `PR0TA_MCP_ACCESS_TOKEN` env var or per-call `access_token`. Remote connectors use OAuth bearer.
 - **All MCP tools except `list_projects` require `project_id`.** Use `list_projects` first to discover available projects.
-- **Available tools:** `list_projects`, `get_project_metadata`, `generation_submit`, `generation_batch_submit`, `tasks_get`, `tasks_cancel`, `assets_list`, `assets_upload_start`, `assets_get_download_link`, `post_sequence_get`, `post_sequence_save`, `post_render_start`, `narration_timeline_get`, `narration_materialize_to_post`, `storyboard_chunks_list`, `storyboard_reference_sheet_generate`, `storyboard_reference_sheets_list`, `review_submit_assets`, `models_list`, `models_get_defaults`, plus legacy project-intelligence and review tools such as `get_scene_breakdown`, `get_scene_shotlist`, `get_character_references`, `get_set_references`, `get_shot_assets`, `get_screenplay_text`, `enable_studio_mode`, `submit_assets_for_review`, and `get_review_annotations`.
+- **Available tools:** `list_projects`, `get_project_metadata`, `generation_submit`, `generation_batch_submit`, `tasks_get`, `tasks_cancel`, `assets_list`, `assets_upload_start`, `assets_get_download_link`, `assets_download`, `audio_analyze`, `audio_meter`, `post_sequence_get`, `post_sequence_save`, `post_render_start`, `narration_timeline_get`, `narration_materialize_to_post`, `storyboard_chunks_list`, `storyboard_reference_sheet_generate`, `storyboard_reference_sheets_list`, `review_submit_assets`, `models_list`, `models_get_defaults`, plus legacy project-intelligence and review tools such as `get_scene_breakdown`, `get_scene_shotlist`, `get_character_references`, `get_set_references`, `get_shot_assets`, `get_screenplay_text`, `enable_studio_mode`, `submit_assets_for_review`, and `get_review_annotations`.
 
 ---
 

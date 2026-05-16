@@ -26,6 +26,9 @@ Both share a single provider-agnostic tool registry — each tool is defined onc
 | `assets_list` | List project assets with simple filters and pagination | `project_id`, `kind`, `task_id`, `limit`, `offset` |
 | `assets_upload_start` | Create an upload intent/registration handoff for files | `project_id`, `filename`, `content_type`, `kind`, `folder_path` |
 | `assets_get_download_link` | Return a download URL for an asset | `project_id`, `asset_id` |
+| `assets_download` | Alias for returning a download URL for an asset | `project_id`, `asset_id` |
+| `audio_analyze` | Predict timeline audio levels for one range or multiple windows | `project_id`, `sequence_id`, `from_time`, `to_time`, `windows`, `track`, `tracks` |
+| `audio_meter` | Run actual LUFS/true-peak metering for short ranges/windows | `project_id`, `sequence_id`, `from_time`, `to_time`, `windows`, `track`, `tracks`, `allow_long`, `timeout_seconds` |
 | `post_sequence_get` | Load the saved post-production sequence/timeline | `project_id`, `sequence_id` (optional) |
 | `post_sequence_save` | Save or patch a post-production sequence/timeline payload | `project_id`, `timeline`, `sequence_id` (optional), `merge_existing`, `lock_token` |
 | `post_render_start` | Start a post-production render task | `project_id`, `render_request`, `sequence_id` |
@@ -117,7 +120,7 @@ The bundled `.mcp.json` points at production:
 }
 ```
 
-After installing or updating the plugin, restart/reload Codex. The user still authorizes PR0TA through the host's normal remote MCP/OAuth flow.
+After installing or updating the plugin, restart/reload Codex. The user still authorizes PR0TA through the host's normal remote MCP/OAuth flow. If PR0TA tool names are not callable after loading the skill, the connector is not exposed in that session; reconnect the bundled MCP server before falling back to REST.
 
 If PR0TA tools are not visible after restart, the agent should launch the connect canary instead of only telling the user to do it manually:
 
@@ -131,7 +134,7 @@ If the helper path is not available in the current install, run:
 codex mcp login pr0ta --scopes mcp
 ```
 
-Expected behavior: Codex opens or prints a PR0TA authorization URL. If it prints the URL, surface that URL to the user and ask them to complete browser approval. Complete the browser login, restart the Codex session, then check `tool_search` for `list_projects`. If `tool_search` still finds no PR0TA tools after a completed OAuth login, then debug plugin discovery; before login, no project/generation/timeline tools are expected to be callable.
+Expected behavior: Codex opens or prints a PR0TA authorization URL. If it prints the URL, surface that URL to the user and ask them to complete browser approval. Complete the browser login, restart the Codex session, then check `tool_search` for `list_projects`. If Codex reports `No authorization support detected`, the host could not discover OAuth from the MCP endpoint; verify the live authorization metadata includes `token_endpoint_auth_methods_supported` with `none`, and redeploy PR0TA before retrying. If `tool_search` still finds no PR0TA tools after a completed OAuth login, then debug plugin discovery; before login, no project/generation/timeline tools are expected to be callable.
 
 ### Local Development Prerequisites
 
@@ -219,10 +222,12 @@ PR0TA exposes a remote MCP surface for Codex, ChatGPT, Claude-style connectors, 
 - **Streamable HTTP:** `https://app.pr0ta.com/api/mcp/mcp`
 - **OAuth metadata:** `https://app.pr0ta.com/api/mcp/.well-known/oauth-authorization-server`
 - **Protected resource metadata:** `https://app.pr0ta.com/api/mcp/.well-known/oauth-protected-resource/api/mcp/mcp`
+- **Root metadata aliases for RFC 9728 clients:** `https://app.pr0ta.com/.well-known/oauth-authorization-server/api/mcp`, `https://app.pr0ta.com/.well-known/oauth-authorization-server/api/mcp/mcp`, and `https://app.pr0ta.com/.well-known/oauth-protected-resource/api/mcp/mcp`
 
 ### Auth Model
 
 - Remote connectors authenticate through PR0TA MCP OAuth.
+- Codex-style public PKCE clients use `token_endpoint_auth_method: "none"`.
 - Users log in with their normal PR0TA account on the consent page.
 - Connector tokens are user-scoped and enforce: active account, verified email, admin approval, billing/account lock checks.
 

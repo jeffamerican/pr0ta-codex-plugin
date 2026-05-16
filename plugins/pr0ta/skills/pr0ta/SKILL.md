@@ -15,7 +15,7 @@ description: "PR0TA orchestration hub for creative media production on app.pr0ta
 The following steps are **non-negotiable** in any multi-asset production. Skipping them has caused production failures in field testing. If you find yourself thinking "I'll skip this to save time," stop — the time saved will be lost many times over in debugging.
 
 1. **Use progressive disclosure.** Read this hub first, then the narrowest companion skill for the next action. Load `pr0ta-api` for auth, raw endpoint contracts, MCP setup, or route details; otherwise prefer the domain skill (`pr0ta-video`, `pr0ta-timeline`, `pr0ta-audio`, etc.) that owns the workflow.
-2. **Use MCP first when available.** The Codex plugin bundles the PR0TA remote MCP connector. Prefer MCP tools (`list_projects`, `generation_submit`, `tasks_get`, `assets_list`, `post_sequence_get`, `post_sequence_save`, `post_render_start`, `narration_timeline_get`, `narration_materialize_to_post`, `review_submit_assets`, etc.) over ad hoc REST/curl calls. Use REST only for routes not exposed through MCP, high-volume scripts, or asset-download fallbacks.
+2. **Use MCP first when available.** The Codex plugin bundles the PR0TA remote MCP connector. Prefer MCP tools (`list_projects`, `generation_submit`, `tasks_get`, `assets_list`, `assets_download`, `audio_analyze`, `audio_meter`, `post_sequence_get`, `post_sequence_save`, `post_render_start`, `narration_timeline_get`, `narration_materialize_to_post`, `review_submit_assets`, etc.) over ad hoc REST/curl calls. If PR0TA MCP tools are not callable in the session, run the connect canary below and only use REST fallback with redacted auth after confirming the connector is unavailable.
 3. **Assemble on the PR0TA post-production timeline.** The timeline is the supported editing surface for PR0TA productions — it handles Ken Burns rendering, audio ducking, crossfades, dimension normalization, and persistent edit state. The agent edits via MCP/API; the user collaborates via the same timeline in the browser. If the timeline has a gap that blocks a production, file a bug with PR0TA platform engineering so it gets built into the app — that's better for every future production than one-off local workarounds. See `pr0ta-timeline`.
 4. **Recurring-character consistency is mandatory.** If the same character appears in more than one generated image or video shot, read `pr0ta-consistency` and create or reuse provider consistency resources before generation. Do not rely on free-text prompts alone for repeat characters.
 5. **Every audio-bearing asset must be time-indexed before editing — two paths, no exceptions.** Every asset that carries sound must be passed through the correct time-indexing endpoint before it is eligible for the timeline. There are two paths:
@@ -51,11 +51,12 @@ The platform uses a credit-based system. Each generation costs credits depending
 | Audio generation (Gemini Flash TTS) | `generation_submit` | `generator=audio`, `mode=txt_to_speech`; ElevenLabs v3 fallback |
 | Music generation (ElevenLabs Music) | `generation_submit` | `generator=music`, `mode=txt_to_music` |
 | Task polling/cancel | `tasks_get`, `tasks_cancel` | Submit tools return task IDs, not finished assets |
-| Asset list/upload/download links | `assets_list`, `assets_upload_start`, `assets_get_download_link` | Download bytes with normal HTTP/curl from returned link |
+| Asset list/upload/download links | `assets_list`, `assets_upload_start`, `assets_download` | Download bytes with normal HTTP/curl from returned link |
 | Element/Character management | REST CRUD endpoints | Persistent project-scoped consistency resources |
 | Timeline editing | `post_sequence_get`, `post_sequence_save` | Agent edits via MCP; user collaborates via the same timeline in the browser |
 | Timeline render | `post_render_start` | Returns a render task ID |
 | Narration materialization | `narration_timeline_get`, `narration_materialize_to_post` | Build/verify narration cuts, then materialize |
+| Audio analysis/QC | `audio_analyze`, `audio_meter` | Predict levels first; meter short windows or use `allow_long` intentionally |
 | Client review | `review_submit_assets` | Submit assets and get a review link |
 | Project discovery | `list_projects` | Use before project-scoped MCP calls |
 | Model discovery | `models_list`, `models_get_defaults` | Query live availability and schemas |
