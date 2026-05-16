@@ -2,7 +2,9 @@
   "mcpServers": {
     "pr0ta": {
       "type": "http",
-      "url": "https://app.pr0ta.com/api/mcp/mcp"
+      "url": "https://app.pr0ta.com/api/mcp/mcp",
+      "scopes": ["mcp"],
+      "oauth_resource": "https://app.pr0ta.com/api/mcp/mcp"
     }
   }
 }

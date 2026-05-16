@@ -32,7 +32,8 @@ if printf '%s\n' "$LOGIN_OUTPUT" | grep -qi "No authorization support detected";
   echo "Codex could not detect PR0TA OAuth support from the MCP endpoint." >&2
   if command -v curl >/dev/null 2>&1 && curl -fsSL "https://app.pr0ta.com/.well-known/oauth-authorization-server/api/mcp/mcp" | grep -q '"none"'; then
     echo "The live PR0TA endpoint advertises public PKCE OAuth correctly." >&2
-    echo "Restart Codex or use the Codex plugin/app install-auth flow, then retry tool discovery." >&2
+    echo "This Codex CLI build may not run OAuth for plugin-provided MCP entries." >&2
+    echo "Use the Codex plugin/app install-auth flow, then start a fresh Codex session and retry tool discovery." >&2
   else
     echo "Verify that $MCP_URL returns a WWW-Authenticate resource_metadata value and that the authorization metadata advertises token_endpoint_auth_methods_supported including 'none'." >&2
     echo "After the server fix is deployed, rerun this script and restart Codex so the PR0TA tools can load." >&2
